@@ -1,0 +1,74 @@
+name: Deploy live demo
+
+# Publishes the Blazor WebAssembly demo (src/StudentGradingSystem.Web) to GitHub Pages.
+# The demo is a static site: it runs entirely in the visitor's browser with in-memory sample data.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - src/StudentGradingSystem.Web/**
+      - src/StudentGradingSystem.Core/**
+      - src/StudentGradingSystem.Data.InMemory/**
+      - Directory.Build.props
+      - .github/workflows/pages.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build demo
+    runs-on: ubuntu-latest
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Publish Blazor WebAssembly app
+        run: dotnet publish src/StudentGradingSystem.Web/StudentGradingSystem.Web.csproj --configuration Release --output publish
+
+      - name: Prepare for GitHub Pages
+        working-directory: publish/wwwroot
+        run: |
+          # The site is served from /<repository-name>/, not from the domain root.
+          sed -i 's|<base href="/" />|<base href="/${{ github.event.repository.name }}/" />|' index.html
+          grep -q '<base href="/${{ github.event.repository.name }}/" />' index.html
+          # Deep links (e.g. /instructor) fall back to the app, which then routes them.
+          cp index.html 404.html
+          # Serve folders that start with an underscore, such as _framework.
+          touch .nojekyll
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v6
+
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: publish/wwwroot
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v5
