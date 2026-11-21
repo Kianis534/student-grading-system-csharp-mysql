@@ -1,0 +1,34 @@
+name: Bug report
+description: Something isn't working as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+      placeholder: |
+        1. Sign in as instructor
+        2. Open CS301 and click "Calculate grades"
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: error
+    attributes:
+      label: Error message or log
+      description: Paste any error dialog text. Unexpected errors are logged to %LOCALAPPDATA%\StudentGradingSystem\logs. Remove passwords before posting.
+      render: text
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: Shown at the bottom-left of the sign-in screen.
+      placeholder: v1.0.0
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Windows and MySQL versions
+      placeholder: Windows 11 23H2, MySQL 8.4.3

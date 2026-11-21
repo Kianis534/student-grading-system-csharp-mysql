@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: Build, test & package (Windows + MySQL 8.4)
+    runs-on: windows-latest
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+      # Throwaway CI server with a passwordless root; integration tests create and drop their own databases.
+      SGS_TEST_CONNECTION_STRING: Server=127.0.0.1;Port=3306;User ID=root;Password=;SslMode=Preferred;AllowPublicKeyRetrieval=True
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Start MySQL
+        uses: ankane/setup-mysql@v1
+        with:
+          mysql-version: 8.4
+          user: root
+
+      - name: Restore
+        run: dotnet restore StudentGradingSystem.sln
+
+      - name: Build (warnings are errors)
+        run: dotnet build StudentGradingSystem.sln --configuration Release --no-restore
+
+      - name: Test (unit + MySQL integration)
+        run: >-
+          dotnet test StudentGradingSystem.sln --configuration Release --no-build
+          --logger "trx;LogFileName=test-results.trx" --results-directory TestResults
+
+      - name: Package release zip
+        shell: pwsh
+        run: ./scripts/package-release.ps1
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results
+          path: TestResults/*.trx
+
+      - name: Upload app package
+        uses: actions/upload-artifact@v7
+        with:
+          name: StudentGradingSystem-windows
+          path: artifacts/*.zip
+
+  database:
+    name: Database scripts (Docker, MySQL 8.4)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Start MySQL with docker compose
+        run: |
+          cp .env.example .env
+          docker compose up -d --wait
+
+      - name: Verify schema and seed data
+        run: |
+          set -euo pipefail
+          query() {
+            docker compose exec -T mysql mysql -N -B -usgs_app -pchange-me-app-password StudentGradingSystem -e "$1" 2>/dev/null
+          }
+          test "$(query 'SELECT COUNT(*) FROM Users')" = "11"
+          test "$(query 'SELECT COUNT(*) FROM CourseEnrollment')" = "100"
+          test "$(query "SELECT FinalGrade FROM Grades WHERE CourseID = 5 AND StudentID = 1")" = "A"
+          test "$(query "SELECT COUNT(*) FROM Grades WHERE CourseID = 5")" = "10"
+          echo "Schema and seed data verified on MySQL $(query 'SELECT VERSION()')"
+
+      - name: Re-running the scripts is safe
+        run: |
+          for f in database/01-schema.sql database/02-seed.sql; do
+            docker compose exec -T mysql mysql -uroot -pchange-me-root-password < "$f" 2>/dev/null
+          done
+          docker compose exec -T mysql mysql -N -B -uroot -pchange-me-root-password StudentGradingSystem \
+            -e 'SELECT COUNT(*) FROM Users' 2>/dev/null | grep -qx 11
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
