@@ -1,79 +1,61 @@
 @page "/instructor/courses/{CourseId:int}/assessments/{ActivityId:int}"
 @inherits DemoPage
+@inject IJSRuntime JS
 
 <PageTitle>Enter marks - Student Grading System demo</PageTitle>
 
 @if (_course is null || _activity is null)
 {
-    <div class="alert alert-warning">This assessment doesn't exist. <a href="instructor">Back to courses</a></div>
     return;
 }
 
-<div class="breadcrumb"><a href="instructor">Courses</a> / <a href="instructor/courses/@CourseId">@_course.Code</a> / @_activity.Name</div>
-
-<div class="page-head">
-    <h1>Enter marks &middot; @_activity.Name</h1>
-    <p>@_course.DisplayName &middot; out of @Format(_activity.TotalMarks) &middot; @Format(_activity.Weightage)% of the final grade</p>
-</div>
-
-<div class="card">
-    <div class="card-body">
-        <span class="muted">Type marks for each student. Leave a box empty if the student hasn't been marked yet.</span>
-    </div>
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>Student ID</th>
-                    <th>Student</th>
-                    <th class="num">Obtained marks (/@Format(_activity.TotalMarks))</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (Row row in _rows)
-                {
-                    <tr>
-                        <td class="muted">@row.StudentId</td>
-                        <td>@row.Name</td>
-                        <td class="num" style="width:220px">
-                            <input type="text" inputmode="decimal" aria-label="Marks for @row.Name"
-                                   class="@(row.Error is null ? "" : "invalid")" style="text-align:right"
-                                   value="@row.Text" @oninput="e => OnInput(row, e.Value?.ToString())" />
-                            @if (row.Error is not null)
-                            {
-                                <div class="field-error">@row.Error</div>
-                            }
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-</div>
-
-@if (_saved)
-{
-    <div class="alert alert-success">Marks saved. Recalculate grades on the course page to update final results.</div>
-}
-
-<div class="actions">
-    @if (_confirmLeave)
-    {
-        <div class="alert alert-warning" style="margin:0">
-            You have unsaved marks.
-            <button class="btn btn-danger btn-sm" @onclick="Leave">Discard and go back</button>
-            <button class="btn btn-light btn-sm" @onclick="() => _confirmLeave = false">Keep editing</button>
+<DesktopWindow Title="@($"Student Grading System - {_activity.Name}")" Width="860" Height="620" OnClose="BackAsync" CloseLabel="Close (back to the course)"
+               HeaderTitle="@($"Enter marks{Dot}{_activity.Name}")"
+               HeaderSubtitle="@($"{_course.DisplayName}{Dot}Out of {Format(_activity.TotalMarks)}{Dot}{Format(_activity.Weightage)}% of the final grade")">
+    <div class="win-content tight" @onkeydown="OnWindowKey">
+        <div class="hint-line">
+            Type marks in the "Obtained marks" column and press Enter to move to the next student. Leave a cell empty if the student hasn't been marked yet.
         </div>
-    }
-    else
-    {
-        <button class="btn btn-light" @onclick="Back">Back</button>
-    }
-    <div class="right">
-        <span class="muted" style="align-self:center">@Status</span>
-        <button class="btn btn-primary" disabled="@(!IsDirty || HasErrors)" @onclick="Save">Save marks</button>
+        <div class="grid-wrap">
+            <table class="grid">
+                <thead>
+                    <tr>
+                        <th style="width:110px">Student ID</th>
+                        <th class="fill">Student</th>
+                        <th class="num" style="width:190px">Obtained marks (/@Format(_activity.TotalMarks))</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (int i = 0; i < _rows.Count; i++)
+                    {
+                        int index = i;
+                        Row row = _rows[i];
+                        <tr class="@(index == _current ? "selected" : "")">
+                            <td class="muted">@row.StudentId</td>
+                            <td>@row.Name</td>
+                            <td class="cell-edit">
+                                <input id="mark-@index" type="text" inputmode="decimal" autocomplete="off"
+                                       aria-label="@($"Obtained marks for {row.Name}")"
+                                       class="@(row.Error is null ? "" : "invalid")" title="@row.Error"
+                                       value="@row.Text"
+                                       @onfocus="() => _current = index"
+                                       @oninput="e => OnInput(row, e.Value?.ToString())"
+                                       @onkeydown="e => OnCellKey(e, index)" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     </div>
-</div>
+    <div class="win-footer">
+        <button class="btn btn-secondary" style="min-width:120px" @onclick="BackAsync">Back</button>
+        <span class="status @StatusClass">@StatusText</span>
+        <div class="right">
+            <button class="btn btn-primary" style="min-width:160px" disabled="@(!IsDirty || HasErrors)" @onclick="() => SaveAsync()">Save marks</button>
+        </div>
+    </div>
+</DesktopWindow>
 
 @code {
     [Parameter]
@@ -90,9 +72,9 @@
 
         public decimal? Saved { get; set; }
 
-        public string Text { get; set; } = string.Empty;
-
         public decimal? Value { get; set; }
+
+        public string Text { get; set; } = string.Empty;
 
         public string? Error { get; set; }
     }
@@ -100,29 +82,43 @@
     private CourseSummary? _course;
     private Activity? _activity;
     private List<Row> _rows = new();
-    private bool _saved;
-    private bool _confirmLeave;
-
-    private bool IsDirty => _rows.Any(r => r.Error is null && r.Value != r.Saved) || HasErrors;
+    private int _current;
+    private string? _savedAt;
 
     private bool HasErrors => _rows.Any(r => r.Error is not null);
 
-    private string Status
+    private bool IsDirty => HasErrors || _rows.Any(r => r.Value != r.Saved);
+
+    private Row? FirstError => _rows.FirstOrDefault(r => r.Error is not null);
+
+    private string StatusClass => HasErrors ? "error" : IsDirty ? "info" : "";
+
+    private string StatusText
     {
         get
         {
-            int marked = _rows.Count(r => r.Value.HasValue && r.Error is null);
-            string text = $"{marked} of {_rows.Count} marked";
-            if (HasErrors)
+            if (FirstError is { } bad)
             {
-                return text + " · fix the highlighted boxes";
+                return $"{bad.Name}: {bad.Error} Press Esc to undo.";
             }
 
-            return IsDirty ? text + " · unsaved changes" : text;
+            var marked = _rows.Where(r => r.Value.HasValue).ToList();
+            string text = $"{marked.Count} of {_rows.Count} students marked";
+            if (marked.Count > 0)
+            {
+                text += $"{Dot}class average {Format(marked.Average(r => r.Value!.Value))} / {Format(_activity!.TotalMarks)}";
+            }
+
+            if (IsDirty)
+            {
+                return text + $"{Dot}unsaved changes";
+            }
+
+            return _savedAt is null ? text : text + $"{Dot}Saved at {_savedAt}.";
         }
     }
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
         if (!EnsureRole(UserRole.Instructor))
         {
@@ -133,6 +129,8 @@
         _activity = Session.Courses.GetActivities(CourseId).FirstOrDefault(a => a.ActivityId == ActivityId);
         if (_activity is null)
         {
+            await Dialogs.WarningAsync("This assessment no longer exists.");
+            Nav.NavigateTo(_course is null ? "instructor" : $"instructor/courses/{CourseId}");
             return;
         }
 
@@ -146,11 +144,24 @@
                 Text = m.ObtainedMarks?.ToString("0.##") ?? string.Empty,
             })
             .ToList();
+
+        if (_rows.Count == 0)
+        {
+            await Dialogs.InfoAsync("No students are enrolled in this course yet.");
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _rows.Count > 0)
+        {
+            await JS.InvokeVoidAsync("sgsFocus", "mark-0");
+        }
     }
 
     private void OnInput(Row row, string? text)
     {
-        _saved = false;
+        _savedAt = null;
         row.Text = text ?? string.Empty;
         string trimmed = row.Text.Trim();
 
@@ -163,7 +174,7 @@
 
         if (!decimal.TryParse(trimmed, out decimal value))
         {
-            row.Error = "Enter a number.";
+            row.Error = "Enter a number, or leave the cell empty.";
             return;
         }
 
@@ -172,13 +183,57 @@
         row.Error = check.IsValid ? null : check.Error;
     }
 
-    private void Save()
+    private async Task OnCellKey(KeyboardEventArgs e, int index)
     {
+        switch (e.Key)
+        {
+            case "Enter":
+            case "ArrowDown":
+                if (index + 1 < _rows.Count)
+                {
+                    await JS.InvokeVoidAsync("sgsFocus", $"mark-{index + 1}");
+                }
+
+                break;
+            case "ArrowUp":
+                if (index > 0)
+                {
+                    await JS.InvokeVoidAsync("sgsFocus", $"mark-{index - 1}");
+                }
+
+                break;
+            case "Escape":
+                // Undo the cell back to its saved value, like cancelling a DataGridView edit.
+                Row row = _rows[index];
+                row.Value = row.Saved;
+                row.Text = row.Saved?.ToString("0.##") ?? string.Empty;
+                row.Error = null;
+                break;
+        }
+    }
+
+    private async Task OnWindowKey(KeyboardEventArgs e)
+    {
+        if (e.CtrlKey && (e.Key == "s" || e.Key == "S"))
+        {
+            await SaveAsync();
+        }
+    }
+
+    private async Task<bool> SaveAsync()
+    {
+        if (HasErrors)
+        {
+            await Dialogs.WarningAsync($"{FirstError!.Name}: {FirstError.Error}");
+            return false;
+        }
+
         var entries = _rows.Select(r => new StudentMarkEntry(r.StudentId, r.Name, r.Value)).ToList();
         ValidationResult result = Session.Courses.SaveMarks(_activity!, entries);
         if (!result.IsValid)
         {
-            return;
+            await Dialogs.WarningAsync(result.Error!);
+            return false;
         }
 
         foreach (Row row in _rows)
@@ -186,19 +241,24 @@
             row.Saved = row.Value;
         }
 
-        _saved = true;
+        _savedAt = DateTime.Now.ToString("h:mm tt");
+        StateHasChanged();
+        return true;
     }
 
-    private void Back()
+    private async Task BackAsync()
     {
         if (IsDirty)
         {
-            _confirmLeave = true;
-            return;
+            string? answer = await Dialogs.ShowAsync(
+                "You have unsaved marks. Save them before leaving?", DialogIcon.Question, "Yes", "No", "Cancel");
+
+            if (answer is null or "Cancel" || (answer == "Yes" && !await SaveAsync()))
+            {
+                return;
+            }
         }
 
-        Leave();
+        Nav.NavigateTo($"instructor/courses/{CourseId}");
     }
-
-    private void Leave() => Nav.NavigateTo($"instructor/courses/{CourseId}");
 }

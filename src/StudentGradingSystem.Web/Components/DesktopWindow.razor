@@ -1,0 +1,75 @@
+@* A window that looks like the desktop app's forms: title bar, optional blue header band and body. *@
+<div class="window" style="--window-width:@(Width)px; --window-height:@(Height)px">
+    <div class="titlebar">
+        <span class="app-icon">A+</span>
+        <span class="caption">@Title</span>
+        <span class="caption-buttons">
+            <span class="disabled" aria-hidden="true">
+                <svg viewBox="0 0 10 10"><path d="M0 5 H10" stroke="currentColor" stroke-width="1.1" /></svg>
+            </span>
+            <span class="@(Resizable ? "" : "disabled")" aria-hidden="true">
+                <svg viewBox="0 0 10 10"><rect x="0.5" y="0.5" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1.1" /></svg>
+            </span>
+            @if (OnClose.HasDelegate)
+            {
+                <button type="button" aria-label="@CloseLabel" title="@CloseLabel" @onclick="OnClose">
+                    <svg viewBox="0 0 10 10"><path d="M0 0 L10 10 M10 0 L0 10" stroke="currentColor" stroke-width="1.1" /></svg>
+                </button>
+            }
+            else
+            {
+                <span class="disabled" aria-hidden="true">
+                    <svg viewBox="0 0 10 10"><path d="M0 0 L10 10 M10 0 L0 10" stroke="currentColor" stroke-width="1.1" /></svg>
+                </span>
+            }
+        </span>
+    </div>
+
+    @if (HeaderTitle is not null)
+    {
+        <div class="win-header">
+            <h1>@HeaderTitle</h1>
+            @if (HeaderSubtitle is not null)
+            {
+                <p>@HeaderSubtitle</p>
+            }
+        </div>
+    }
+
+    <div class="win-body">
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    /// <summary>Window caption, e.g. "Student Grading System - Courses".</summary>
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    /// <summary>Client width of the matching desktop form, in pixels.</summary>
+    [Parameter]
+    public int Width { get; set; } = 980;
+
+    /// <summary>Minimum height of the matching desktop form, in pixels.</summary>
+    [Parameter]
+    public int Height { get; set; } = 600;
+
+    [Parameter]
+    public bool Resizable { get; set; } = true;
+
+    [Parameter]
+    public string? HeaderTitle { get; set; }
+
+    [Parameter]
+    public string? HeaderSubtitle { get; set; }
+
+    /// <summary>What the title bar's close button does (desktop: closing a child window goes back).</summary>
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    [Parameter]
+    public string CloseLabel { get; set; } = "Close";
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

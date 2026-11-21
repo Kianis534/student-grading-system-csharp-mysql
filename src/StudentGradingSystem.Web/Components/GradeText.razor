@@ -1,0 +1,19 @@
+@* Letter grade coloured the same way as the desktop grids. *@
+<span class="@CssClass">@(Grade ?? NullText)</span>
+
+@code {
+    [Parameter]
+    public string? Grade { get; set; }
+
+    [Parameter]
+    public string NullText { get; set; } = "Not graded";
+
+    private string CssClass => Grade switch
+    {
+        null => "grade-none",
+        "F" => "grade-f",
+        "D" => "grade-d",
+        _ when Grade.StartsWith('A') => "grade-a",
+        _ => "grade-x",
+    };
+}

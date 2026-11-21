@@ -36,6 +36,8 @@ Students sign in to see their results and exactly how every mark counts.
 > [!IMPORTANT]
 > **The live demo is for previewing only.** It runs on sample data that lives in your browser tab: nothing is saved to a server, and everything resets when you reload the page.
 > To use the system for real, [download the desktop app](#getting-started) and connect it to **your own MySQL database**. The download, database setup and configuration work exactly as described in [Getting started](#getting-started).
+>
+> **It looks similar, not identical.** The demo is styled to mirror the desktop windows, but it's a web page, so fonts, window frames and controls such as number boxes and drop-downs won't match the real app exactly. The screenshots and GIF in this README show the real Windows app.
 
 ---
 
@@ -96,6 +98,8 @@ Students sign in to see their results and exactly how every mark counts.
 
 The live demo lets anyone explore the app in a browser without installing anything. It runs the **same C# business logic** as the desktop app (grading rules, validation, sign-in and services from `StudentGradingSystem.Core`), compiled to WebAssembly with Blazor, but it stores data in memory instead of MySQL.
 
+It's built to look and behave like the desktop app: each screen is a window with the same title, blue header, grid columns, button bar and message boxes, and it supports the same keyboard shortcuts (Enter to open, Delete to remove, Esc to undo a mark, Ctrl+S to save). It's still a web page, though, so it won't match the desktop screenshots pixel for pixel.
+
 | | Live demo (browser) | Full app (download) |
 | --- | --- | --- |
 | Purpose | Look around and try the features | Day-to-day use with real data |
@@ -103,18 +107,21 @@ The live demo lets anyone explore the app in a browser without installing anythi
 | Data | Sample data in your browser tab only | **Your own MySQL database** |
 | Saved? | No, resets when you reload or click *Reset demo data* | Yes, permanently in MySQL |
 | Accounts | Demo accounts only | The demo accounts plus your own data |
+| Look | Styled like the desktop app, but not identical | Exactly as in the [screenshots](#screenshots) |
 | Setup | None | [Getting started](#getting-started): download, create the database, connect |
 
 <p align="center">
-  <img src="docs/images/live-demo-sign-in.jpg" alt="Live demo sign-in page with one-click demo accounts" width="400" />
-  <img src="docs/images/live-demo-grades.jpg" alt="Live demo final grades page with statistics and grade distribution" width="400" />
+  <img src="docs/images/live-demo-sign-in.jpg" alt="Live demo: sign-in window in the browser" width="270" />
+  <img src="docs/images/live-demo-courses.jpg" alt="Live demo: instructor courses window in the browser" width="270" />
+  <img src="docs/images/live-demo-grades.jpg" alt="Live demo: final grades window in the browser" width="270" />
 </p>
+<p align="center"><sub>Live demo in a browser. Compare it with the desktop screenshots below: same layout and workflow, different rendering.</sub></p>
 
 > Each visitor gets a private copy of the sample data, so nothing you do in the demo is visible to anyone else. There's no server or database behind it at all.
 
 ## Screenshots
 
-These are from the desktop app.
+These are from the real Windows desktop app. The [live demo](#live-demo) looks similar but not identical.
 
 | Sign in | Instructor: courses |
 | :---: | :---: |

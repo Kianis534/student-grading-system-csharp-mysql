@@ -5,122 +5,80 @@
 
 @if (_course is null)
 {
-    <div class="alert alert-warning">This course doesn't exist. <a href="instructor">Back to courses</a></div>
     return;
 }
 
-<div class="breadcrumb"><a href="instructor">Courses</a> / @_course.Code</div>
-
-<div class="page-head">
-    <h1>@_course.Code &middot; @_course.Title</h1>
-    <p>@_course.Semester &middot; @_course.EnrolledStudents students enrolled &middot; @_activities.Count assessments</p>
-</div>
-
-<div class="card">
-    <div class="card-body">
-        <h2>Final grade weightage</h2>
-        <div class="weight">
-            <div class="progress @(Remaining == 0 ? "full" : "")"><span style="width:@(Math.Min(100m, Allocated).ToString("0.##"))%"></span></div>
-            <strong>@Format(Allocated)% allocated</strong>
-            <span class="muted">@(Remaining == 0 ? "ready to grade" : $"{Format(Remaining)}% remaining")</span>
+<DesktopWindow Title="@($"Student Grading System - {_course.Code}")" Width="980" Height="640" OnClose="Back" CloseLabel="Close (back to courses)"
+               HeaderTitle="@_course.DisplayName"
+               HeaderSubtitle="@($"{_course.Semester}{Dot}{_course.EnrolledStudents} students enrolled{Dot}{_activities.Count} assessments")">
+    <div class="win-content">
+        <div class="grid-wrap" tabindex="0" @onkeydown="OnGridKey">
+            <table class="grid">
+                <thead>
+                    <tr>
+                        <th class="fill">Assessment</th>
+                        <th class="num" style="width:140px">Total marks</th>
+                        <th class="num" style="width:140px">Weightage</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (int i = 0; i < _activities.Count; i++)
+                    {
+                        int index = i;
+                        Activity activity = _activities[i];
+                        <tr class="selectable @(index == _selected ? "selected" : "")" @onclick="() => _selected = index" @ondblclick="EnterMarks">
+                            <td>@activity.Name</td>
+                            <td class="num">@Format(activity.TotalMarks)</td>
+                            <td class="num">@Format(activity.Weightage)%</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
         </div>
     </div>
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>Assessment</th>
-                    <th class="num">Total marks</th>
-                    <th class="num">Weightage</th>
-                    <th class="num">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (_activities.Count == 0)
-                {
-                    <tr><td colspan="4" class="muted">No assessments yet. Add the first one below.</td></tr>
-                }
-                @foreach (Activity activity in _activities)
-                {
-                    <tr>
-                        <td class="strong">@activity.Name</td>
-                        <td class="num">@Format(activity.TotalMarks)</td>
-                        <td class="num">@Format(activity.Weightage)%</td>
-                        <td class="num">
-                            @if (_confirmDeleteId == activity.ActivityId)
-                            {
-                                <span class="muted">Delete it and its marks?</span>
-                                <button class="btn btn-danger btn-sm" @onclick="() => Delete(activity)">Delete</button>
-                                <button class="btn btn-light btn-sm" @onclick="() => _confirmDeleteId = null">Cancel</button>
-                            }
-                            else
-                            {
-                                <a class="btn btn-success btn-sm" href="instructor/courses/@CourseId/assessments/@activity.ActivityId">Enter marks</a>
-                                <button class="btn btn-light btn-sm" @onclick="() => _confirmDeleteId = activity.ActivityId">Delete</button>
-                            }
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-</div>
 
-<div class="card">
-    <div class="card-body">
-        <h2>Add an assessment</h2>
-        <form @onsubmit="Add" @onsubmit:preventDefault>
-            <div class="form-row">
-                <div class="grow">
-                    <label for="name">Name</label>
-                    <input id="name" type="text" list="suggestions" maxlength="@ActivityRules.MaxNameLength" placeholder="e.g. Quiz 2" @bind="_newName" />
-                    <datalist id="suggestions">
-                        @foreach (string suggestion in ActivityRules.SuggestedNames)
-                        {
-                            <option value="@suggestion"></option>
-                        }
-                    </datalist>
-                </div>
-                <div>
-                    <label for="total">Total marks</label>
-                    <input id="total" type="number" min="0.01" max="1000" step="0.01" @bind="_newTotal" />
-                </div>
-                <div>
-                    <label for="weight">Weightage (%)</label>
-                    <input id="weight" type="number" min="0.01" max="100" step="0.01" @bind="_newWeight" />
-                </div>
-                <div>
-                    <button type="submit" class="btn btn-success" disabled="@(Remaining == 0)">Add assessment</button>
-                </div>
+    <div class="add-panel">
+        <h3>Add an assessment</h3>
+        <form class="add-row" @onsubmit="Add" @onsubmit:preventDefault>
+            <div class="name">
+                <label class="field-label" for="name">Name (pick one or type your own)</label>
+                <input id="name" class="textbox" type="text" list="suggestions" maxlength="@ActivityRules.MaxNameLength" @bind="_newName" />
+                <datalist id="suggestions">
+                    @foreach (string suggestion in ActivityRules.SuggestedNames)
+                    {
+                        <option value="@suggestion"></option>
+                    }
+                </datalist>
             </div>
+            <div class="num">
+                <label class="field-label" for="total">Total marks</label>
+                <input id="total" class="textbox" type="number" min="0.01" max="1000" step="0.01" @bind="_newTotal" />
+            </div>
+            <div class="num">
+                <label class="field-label" for="weight">Weightage (%)</label>
+                <input id="weight" class="textbox" type="number" min="0.01" max="100" step="0.01" @bind="_newWeight" />
+            </div>
+            <button type="submit" class="btn btn-success btn-small" style="min-width:150px" disabled="@(Remaining == 0)">Add assessment</button>
         </form>
-        @if (_formError is not null)
-        {
-            <div class="alert alert-error">@_formError</div>
-        }
-        @if (_message is not null)
-        {
-            <div class="alert alert-success">@_message</div>
-        }
+        <div class="weight-box">
+            <h4>Final grade weightage</h4>
+            <div class="progress"><span style="width:@(Math.Min(100m, Allocated).ToString("0.##"))%"></span></div>
+            <div class="value @(Remaining == 0 ? "ok" : "")">
+                @(Remaining == 0 ? $"{Format(Allocated)}% allocated - ready to grade" : $"{Format(Allocated)}% allocated{Dot}{Format(Remaining)}% remaining")
+            </div>
+        </div>
     </div>
-</div>
 
-@if (_confirmPartial)
-{
-    <div class="alert alert-warning">
-        Only @Format(Allocated)% of the final grade is allocated. Students are graded out of 100%, so missing weightage counts as zero.
-        <button class="btn btn-primary btn-sm" @onclick="() => Calculate(force: true)">Calculate anyway</button>
-        <button class="btn btn-light btn-sm" @onclick="() => _confirmPartial = false">Cancel</button>
+    <div class="win-footer">
+        <button class="btn btn-secondary" style="min-width:150px" @onclick="Back">Back to courses</button>
+        <div class="right">
+            <button class="btn btn-danger" disabled="@(_selected < 0)" @onclick="Delete">Delete</button>
+            <button class="btn btn-success" style="min-width:130px" disabled="@(_selected < 0)" @onclick="EnterMarks">Enter marks</button>
+            <button class="btn btn-secondary" style="min-width:130px" @onclick="ViewGrades">View grades</button>
+            <button class="btn btn-primary" style="min-width:160px" disabled="@(_activities.Count == 0)" @onclick="Calculate">Calculate grades</button>
+        </div>
     </div>
-}
-
-<div class="actions">
-    <a class="btn btn-light" href="instructor">Back to courses</a>
-    <div class="right">
-        <a class="btn btn-light" href="instructor/courses/@CourseId/grades">View grades</a>
-        <button class="btn btn-primary" disabled="@(_activities.Count == 0)" @onclick="() => Calculate(force: false)">Calculate grades</button>
-    </div>
-</div>
+</DesktopWindow>
 
 @code {
     [Parameter]
@@ -128,69 +86,122 @@
 
     private CourseSummary? _course;
     private IReadOnlyList<Activity> _activities = Array.Empty<Activity>();
+    private int _selected = -1;
     private string _newName = string.Empty;
     private decimal _newTotal = 10;
     private decimal _newWeight = 10;
-    private string? _formError;
-    private string? _message;
-    private int? _confirmDeleteId;
-    private bool _confirmPartial;
 
     private decimal Allocated => _activities.Sum(a => a.Weightage);
 
     private decimal Remaining => Math.Max(0m, ActivityRules.MaxCourseWeightage - Allocated);
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
-        if (EnsureRole(UserRole.Instructor))
+        if (!EnsureRole(UserRole.Instructor))
         {
+            return;
+        }
+
+        Load();
+        if (_course is null)
+        {
+            await Dialogs.WarningAsync("This course no longer exists.");
+            Back();
+        }
+    }
+
+    private void Load(int? selectActivityId = null)
+    {
+        _course = Session.Courses.GetCourse(CourseId);
+        _activities = Session.Courses.GetActivities(CourseId);
+
+        int found = selectActivityId is int id ? _activities.ToList().FindIndex(a => a.ActivityId == id) : -1;
+        _selected = found >= 0 ? found : _activities.Count > 0 ? Math.Max(0, Math.Min(_selected, _activities.Count - 1)) : -1;
+
+        if (Remaining > 0)
+        {
+            _newWeight = Math.Max(0.01m, Math.Min(_newWeight, Remaining));
+        }
+    }
+
+    private async Task Add()
+    {
+        ValidationResult result = Session.Courses.AddActivity(CourseId, _newName, _newTotal, _newWeight, out Activity? created);
+        if (!result.IsValid)
+        {
+            await Dialogs.WarningAsync(result.Error!);
+            return;
+        }
+
+        _newName = string.Empty;
+        Load(created?.ActivityId);
+    }
+
+    private async Task Delete()
+    {
+        if (_selected < 0)
+        {
+            return;
+        }
+
+        Activity activity = _activities[_selected];
+        bool confirmed = await Dialogs.ConfirmAsync(
+            $"Delete \"{activity.Name}\" and every mark recorded for it?\n\n" +
+            "This can't be undone. Recalculate grades afterwards so final results reflect the change.",
+            destructive: true);
+
+        if (confirmed)
+        {
+            Session.Courses.DeleteActivity(activity.ActivityId);
             Load();
         }
     }
 
-    private void Load()
+    private void EnterMarks()
     {
-        _course = Session.Courses.GetCourse(CourseId);
-        _activities = Session.Courses.GetActivities(CourseId);
-        if (Remaining > 0 && _newWeight > Remaining)
+        if (_selected >= 0)
         {
-            _newWeight = Remaining;
+            Nav.NavigateTo($"instructor/courses/{CourseId}/assessments/{_activities[_selected].ActivityId}");
         }
     }
 
-    private void Add()
+    private async Task Calculate()
     {
-        _message = null;
-        ValidationResult result = Session.Courses.AddActivity(CourseId, _newName, _newTotal, _newWeight, out Activity? created);
-        if (!result.IsValid)
+        if (_activities.Count == 0)
         {
-            _formError = result.Error;
+            await Dialogs.WarningAsync("Add at least one assessment before calculating grades.");
             return;
         }
 
-        _formError = null;
-        _message = $"Added \"{created!.Name}\". Click \"Enter marks\" to record marks for it.";
-        _newName = string.Empty;
-        Load();
-    }
-
-    private void Delete(Activity activity)
-    {
-        Session.Courses.DeleteActivity(activity.ActivityId);
-        _confirmDeleteId = null;
-        _message = $"Deleted \"{activity.Name}\". Recalculate grades so final results reflect the change.";
-        Load();
-    }
-
-    private void Calculate(bool force)
-    {
-        if (!force && Remaining > 0)
+        if (Remaining > 0 && !await Dialogs.ConfirmAsync(
+                $"Only {Format(Allocated)}% of the final grade has been allocated to assessments.\n" +
+                "Students will be graded out of 100%, so missing weightage counts as zero.\n\n" +
+                "Calculate grades anyway?"))
         {
-            _confirmPartial = true;
             return;
         }
 
         Session.Grading.CalculateAndSaveGrades(CourseId);
         Nav.NavigateTo($"instructor/courses/{CourseId}/grades?calculated=true");
+    }
+
+    private void ViewGrades() => Nav.NavigateTo($"instructor/courses/{CourseId}/grades");
+
+    private void Back() => Nav.NavigateTo("instructor");
+
+    private async Task OnGridKey(KeyboardEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case "Enter":
+                EnterMarks();
+                break;
+            case "Delete":
+                await Delete();
+                break;
+            default:
+                _selected = MoveSelection(e, _selected, _activities.Count);
+                break;
+        }
     }
 }

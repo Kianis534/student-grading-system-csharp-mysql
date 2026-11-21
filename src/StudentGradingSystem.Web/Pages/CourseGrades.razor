@@ -6,85 +6,68 @@
 
 @if (_course is null)
 {
-    <div class="alert alert-warning">This course doesn't exist. <a href="instructor">Back to courses</a></div>
     return;
 }
 
-<div class="breadcrumb"><a href="instructor">Courses</a> / <a href="instructor/courses/@CourseId">@_course.Code</a> / Final grades</div>
-
-<div class="page-head">
-    <h1>Final grades</h1>
-    <p>@_course.DisplayName &middot; @_course.Semester</p>
-</div>
-
-@if (Calculated)
-{
-    <div class="alert alert-success">Grades recalculated just now for @_grades.Count students.</div>
-}
-
-@if (_grades.Count == 0)
-{
-    <div class="card"><div class="card-body">
-        <h2>No grades yet</h2>
-        <p class="muted">Open the course and click <strong>Calculate grades</strong> to generate final grades.</p>
-        <a class="btn btn-primary" href="instructor/courses/@CourseId">Go to the course</a>
-    </div></div>
-    return;
-}
-
-<div class="stats">
-    <div class="stat"><div class="value">@Percent(_stats!.Average)</div><div class="label">Class average</div></div>
-    <div class="stat"><div class="value">@Percent(_stats.Highest)</div><div class="label">Highest</div></div>
-    <div class="stat"><div class="value">@Percent(_stats.Lowest)</div><div class="label">Lowest</div></div>
-    <div class="stat"><div class="value">@_stats.Passed / @_stats.Count</div><div class="label">Passed</div></div>
-</div>
-
-<div class="card">
-    <div class="card-body">
-        <h2>Grade distribution</h2>
-        <div class="distribution">
-            @foreach (KeyValuePair<string, int> band in _stats.Distribution)
-            {
-                <div class="bar">
-                    <b>@band.Value</b>
-                    <i style="height:@BarHeight(band.Value)%"></i>
-                    <span>@band.Key</span>
-                </div>
-            }
+<DesktopWindow Title="@($"Student Grading System - {_course.Code} grades")" Width="860" Height="620" OnClose="Back" CloseLabel="Close (back to the course)"
+               HeaderTitle="Final grades"
+               HeaderSubtitle="@($"{_course.DisplayName}{Dot}{_course.Semester}")">
+    <div class="stats-block">
+        @if (_stats is null || _stats.Count == 0)
+        {
+            <div class="stats">No grades yet</div>
+            <div class="distribution">Open the course and click "Calculate grades" to generate final grades.</div>
+        }
+        else
+        {
+            <div class="stats">
+                <span>Average @Percent(_stats.Average)</span>
+                <span>Highest @Percent(_stats.Highest)</span>
+                <span>Lowest @Percent(_stats.Lowest)</span>
+                <span>Passed @_stats.Passed of @_stats.Count</span>
+            </div>
+            <div class="distribution">
+                Distribution:&nbsp;
+                @foreach (KeyValuePair<string, int> band in _stats.Distribution.Where(d => d.Value > 0))
+                {
+                    <span>@band.Key × @band.Value</span>
+                }
+            </div>
+        }
+    </div>
+    <div class="win-content tight">
+        <div class="grid-wrap">
+            <table class="grid">
+                <thead>
+                    <tr>
+                        <th style="width:110px">Student ID</th>
+                        <th class="fill">Student</th>
+                        <th class="num" style="width:140px">Percentage</th>
+                        <th class="center" style="width:110px">Grade</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (StudentGrade grade in _grades)
+                    {
+                        <tr>
+                            <td class="muted">@grade.StudentId</td>
+                            <td>@grade.StudentName</td>
+                            <td class="num">@Percent(grade.Percentage)</td>
+                            <td class="center"><GradeText Grade="@grade.FinalGrade" /></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
         </div>
     </div>
-</div>
-
-<div class="card">
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>Student ID</th>
-                    <th>Student</th>
-                    <th class="num">Percentage</th>
-                    <th class="center">Grade</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (StudentGrade grade in _grades)
-                {
-                    <tr>
-                        <td class="muted">@grade.StudentId</td>
-                        <td>@grade.StudentName</td>
-                        <td class="num">@Percent(grade.Percentage)</td>
-                        <td class="center"><GradeBadge Grade="@grade.FinalGrade" /></td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+    <div class="win-footer">
+        <button class="btn btn-secondary" style="min-width:120px" @onclick="Back">Back</button>
+        <span class="status @(_statusOk ? "ok" : "")">@_status</span>
+        <div class="right">
+            <button class="btn btn-primary" style="min-width:160px" disabled="@(_grades.Count == 0)" @onclick="ExportAsync">Export to CSV</button>
+        </div>
     </div>
-</div>
-
-<div class="actions">
-    <a class="btn btn-light" href="instructor/courses/@CourseId">Back to course</a>
-    <button class="btn btn-primary" @onclick="ExportAsync">Export to CSV</button>
-</div>
+</DesktopWindow>
 
 @code {
     [Parameter]
@@ -96,6 +79,8 @@
     private CourseSummary? _course;
     private IReadOnlyList<StudentGrade> _grades = Array.Empty<StudentGrade>();
     private GradeStatistics? _stats;
+    private string _status = string.Empty;
+    private bool _statusOk;
 
     protected override void OnParametersSet()
     {
@@ -105,19 +90,30 @@
         }
 
         _course = Session.Courses.GetCourse(CourseId);
+        if (_course is null)
+        {
+            Nav.NavigateTo("instructor");
+            return;
+        }
+
         _grades = Session.Grading.GetGrades(CourseId);
         _stats = GradeStatistics.From(_grades.ToList());
-    }
 
-    private int BarHeight(int count)
-    {
-        int max = Math.Max(1, _stats!.Distribution.Values.Max());
-        return count == 0 ? 2 : (int)Math.Round(100.0 * count / max);
+        DateTime? calculatedAt = _grades.Count == 0 ? null : _grades.Max(g => g.CalculatedAt);
+        _statusOk = Calculated;
+        _status = Calculated
+            ? "Grades recalculated just now."
+            : calculatedAt is DateTime when ? $"Last calculated {when:g}." : string.Empty;
     }
 
     private async Task ExportAsync()
     {
         string csv = StudentGradingSystem.Core.Reporting.GradeReportCsv.ToCsv(_grades);
-        await JS.InvokeVoidAsync("sgsDownloadCsv", $"{_course!.Code}-final-grades.csv", csv);
+        string fileName = $"{_course!.Code}-final-grades.csv";
+        await JS.InvokeVoidAsync("sgsDownloadCsv", fileName, csv);
+        _status = $"Exported {_grades.Count} grades to {fileName}.";
+        _statusOk = true;
     }
+
+    private void Back() => Nav.NavigateTo($"instructor/courses/{CourseId}");
 }

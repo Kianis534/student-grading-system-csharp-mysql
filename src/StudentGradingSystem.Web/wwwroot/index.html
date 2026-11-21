@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Student Grading System - Live Demo (C#, Blazor WebAssembly)</title>
+    <title>Student Grading System - Live Demo</title>
     <meta name="description" content="Try the Student Grading System in your browser: add assessments, enter marks and calculate weighted grades as an instructor, or view results as a student. Built with C#; the desktop app uses WinForms and MySQL." />
     <meta property="og:title" content="Student Grading System - Live Demo" />
     <meta property="og:description" content="Assessments, marks and weighted final grades for instructors and students. Runs entirely in your browser." />
@@ -36,9 +36,18 @@
     </div>
 
     <script>
+        // Small helpers used by the demo (focus moves in the marks grid, "Remember my username").
+        window.sgsFocus = function (id) {
+            const element = document.getElementById(id);
+            if (element) { element.focus(); if (element.select) { element.select(); } }
+        };
+        window.sgsGetItem = function (key) { try { return localStorage.getItem(key); } catch (e) { return null; } };
+        window.sgsSetItem = function (key, value) {
+            try { if (value) { localStorage.setItem(key, value); } else { localStorage.removeItem(key); } } catch (e) { }
+        };
         // Saves exported grades as a CSV file (UTF-8 with BOM so Excel reads names correctly).
         window.sgsDownloadCsv = function (fileName, content) {
-            const blob = new Blob(["﻿" + content], { type: "text/csv;charset=utf-8" });
+            const blob = new Blob(["\ufeff" + content], { type: "text/csv;charset=utf-8" });
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
             link.href = url;

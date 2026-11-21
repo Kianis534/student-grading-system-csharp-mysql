@@ -3,56 +3,87 @@
 
 <PageTitle>My courses - Student Grading System demo</PageTitle>
 
-<div class="page-head">
-    <h1>Welcome, @Session.User?.DisplayName</h1>
-    <p>Your courses and results &middot; open a course to see your marks.</p>
-</div>
-
-<div class="card">
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>Code</th>
-                    <th>Course</th>
-                    <th>Semester</th>
-                    <th class="num">Percentage</th>
-                    <th class="center">Grade</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (StudentCourseResult course in _courses)
-                {
-                    <tr class="clickable" @onclick="() => Open(course)">
-                        <td class="strong">@course.Code</td>
-                        <td>@course.Title</td>
-                        <td class="muted">@course.Semester</td>
-                        <td class="num">@(course.Percentage is decimal p ? Percent(p) : "-")</td>
-                        <td class="center"><GradeBadge Grade="@course.FinalGrade" /></td>
-                        <td class="num"><a href="student/courses/@course.CourseId" @onclick:stopPropagation>View marks</a></td>
+<DesktopWindow Title="Student Grading System - My courses" Width="900" Height="580" OnClose="SignOut" CloseLabel="Close (signs out)"
+               HeaderTitle="@($"Welcome, {Session.User?.DisplayName}")"
+               HeaderSubtitle="@($"Your courses and results{Dot}Double-click a course to see your marks.")">
+    <div class="win-content">
+        <div class="grid-wrap" tabindex="0" @onkeydown="OnGridKey">
+            <table class="grid">
+                <thead>
+                    <tr>
+                        <th style="width:90px">Code</th>
+                        <th class="fill">Course</th>
+                        <th style="width:120px">Semester</th>
+                        <th class="num" style="width:120px">Percentage</th>
+                        <th class="center" style="width:120px">Grade</th>
                     </tr>
-                }
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @for (int i = 0; i < _courses.Count; i++)
+                    {
+                        int index = i;
+                        StudentCourseResult course = _courses[i];
+                        <tr class="selectable @(index == _selected ? "selected" : "")" @onclick="() => _selected = index" @ondblclick="Open">
+                            <td>@course.Code</td>
+                            <td>@course.Title</td>
+                            <td>@course.Semester</td>
+                            <td class="num">@(course.Percentage is decimal p ? Percent(p) : "-")</td>
+                            <td class="center"><GradeText Grade="@course.FinalGrade" /></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     </div>
-</div>
-
-<p class="muted">
-    @_courses.Count enrolled courses &middot; @_courses.Count(c => c.IsGraded) graded.
-    Tip: open <strong>CS301</strong> for a released grade, or <strong>CS201</strong> to see marks for a course still in progress.
-</p>
+    <div class="win-footer">
+        <button class="btn btn-secondary" style="min-width:130px" @onclick="SignOut">Sign out</button>
+        <span class="status">@Summary</span>
+        <div class="right">
+            <button class="btn btn-primary" style="min-width:160px" disabled="@(_selected < 0)" @onclick="Open">View marks</button>
+        </div>
+    </div>
+</DesktopWindow>
 
 @code {
     private IReadOnlyList<StudentCourseResult> _courses = Array.Empty<StudentCourseResult>();
+    private int _selected = -1;
+
+    private string Summary
+    {
+        get
+        {
+            var graded = _courses.Where(c => c.IsGraded).ToList();
+            return graded.Count == 0
+                ? $"{_courses.Count} enrolled courses{Dot}no grades released yet"
+                : $"{_courses.Count} enrolled courses{Dot}{graded.Count} graded{Dot}average {Percent(graded.Average(c => c.Percentage!.Value))}";
+        }
+    }
 
     protected override void OnInitialized()
     {
         if (EnsureRole(UserRole.Student))
         {
             _courses = Session.Results.GetCourses(Session.User!.StudentId!.Value);
+            _selected = _courses.Count > 0 ? 0 : -1;
         }
     }
 
-    private void Open(StudentCourseResult course) => Nav.NavigateTo($"student/courses/{course.CourseId}");
+    private void Open()
+    {
+        if (_selected >= 0)
+        {
+            Nav.NavigateTo($"student/courses/{_courses[_selected].CourseId}");
+        }
+    }
+
+    private void OnGridKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            Open();
+            return;
+        }
+
+        _selected = MoveSelection(e, _selected, _courses.Count);
+    }
 }

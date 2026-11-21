@@ -3,54 +3,58 @@
 @inject DemoSession Session
 @inject NavigationManager Nav
 
-<div class="demo-banner" role="note">
-    <strong>Live demo</strong> &middot; sample data stored only in your browser &middot; resets when you reload.
-    For real use, <a href="@RepoUrl#getting-started" target="_blank" rel="noopener">download the desktop app</a> and connect your own MySQL database.
+<div class="preview-strip" role="note">
+    <span><strong>Live preview</strong> of the Windows desktop app &middot; sample data in your browser only &middot; resets when you reload.</span>
+    @if (Session.IsSignedIn)
+    {
+        <button class="link" title="Undo every change you made in this demo" @onclick="ResetDemo">Reset demo data</button>
+    }
+    else
+    {
+        <span class="quick">
+            <button type="button" disabled="@_busy" @onclick="() => QuickSignIn(true)">Try as instructor</button>
+            <button type="button" disabled="@_busy" @onclick="() => QuickSignIn(false)">Try as student</button>
+        </span>
+    }
+    <a href="@RepoUrl#getting-started" target="_blank" rel="noopener">Get the real app (MySQL)</a>
 </div>
 
-@if (Session.User is { } user)
-{
-    <header class="topbar">
-        <a class="brand" href="@Session.HomeUrl">
-            <span class="logo">A+</span>
-            <span>Student Grading System</span>
-        </a>
-        <div class="topbar-actions">
-            <span class="who">
-                @if (!string.Equals(user.DisplayName, RoleLabel(user.Role), StringComparison.OrdinalIgnoreCase))
-                {
-                    @user.DisplayName
-                }
-                <span class="pill">@RoleLabel(user.Role)</span>
-            </span>
-            <button class="btn btn-ghost" title="Undo every change you made in this demo" @onclick="ResetDemo">Reset demo data</button>
-            <button class="btn btn-light" @onclick="SignOut">Sign out</button>
-        </div>
-    </header>
-}
-
-<main>
+<div class="stage">
     @Body
-</main>
+</div>
 
-<footer class="site-footer">
-    Built with C# &middot; this demo runs on Blazor WebAssembly with in-memory data; the desktop app uses Windows Forms and MySQL.
-    <a href="@RepoUrl" target="_blank" rel="noopener">Source code on GitHub</a>
-</footer>
+<p class="stage-note">
+    Browser version of the desktop app, built with C# and Blazor WebAssembly. It mirrors the real windows but won't match them pixel for pixel.
+    <a href="@RepoUrl" target="_blank" rel="noopener">Source code and desktop screenshots on GitHub</a>
+</p>
+
+<MessageBoxHost />
 
 @code {
     private const string RepoUrl = "https://github.com/Kianis534/student-grading-system-csharp-mysql";
+    private bool _busy;
 
     protected override void OnInitialized() => Session.Changed += OnSessionChanged;
 
-    private static string RoleLabel(UserRole role) => role == UserRole.Instructor ? "Instructor" : "Student";
-
     private void OnSessionChanged() => InvokeAsync(StateHasChanged);
 
-    private void SignOut()
+    private async Task QuickSignIn(bool instructor)
     {
-        Session.SignOut();
-        Nav.NavigateTo(string.Empty);
+        _busy = true;
+        try
+        {
+            AuthenticatedUser? user = instructor
+                ? await Session.SignInAsync(StudentGradingSystem.Data.InMemory.DemoData.InstructorUsername, StudentGradingSystem.Data.InMemory.DemoData.InstructorPassword)
+                : await Session.SignInAsync(StudentGradingSystem.Data.InMemory.DemoData.StudentUsername, StudentGradingSystem.Data.InMemory.DemoData.StudentPassword);
+            if (user is not null)
+            {
+                Nav.NavigateTo(Session.HomeUrl);
+            }
+        }
+        finally
+        {
+            _busy = false;
+        }
     }
 
     private void ResetDemo()

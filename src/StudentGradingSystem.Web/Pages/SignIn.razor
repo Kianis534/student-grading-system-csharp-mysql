@@ -1,64 +1,79 @@
 @page "/"
 @inherits DemoPage
+@inject IJSRuntime JS
 
 <PageTitle>Sign in - Student Grading System demo</PageTitle>
 
-<div class="signin">
-    <section class="signin-brand">
-        <span class="logo">A+</span>
-        <h1>Student Grading System</h1>
-        <p>Assessments, marks and weighted final grades for instructors and students.</p>
-        <ul>
-            <li>Set up quizzes, assignments and exams with weightage</li>
-            <li>Enter marks and calculate final grades in one click</li>
-            <li>Students see exactly how every mark counts</li>
-        </ul>
-        <p class="muted-on-blue"><small>This preview runs the same C# grading engine as the desktop app, right in your browser.</small></p>
-    </section>
+<DesktopWindow Title="Student Grading System - Sign in" Width="860" Height="520" Resizable="false">
+    <div class="signin">
+        <section class="signin-brand">
+            <div class="logo-tile">A+</div>
+            <h2>Student Grading System</h2>
+            <p class="tagline">Assessments, marks and final grades for instructors and students.</p>
+            <ul>
+                <li>Weighted grade calculation</li>
+                <li>Instructor and student portals</li>
+                <li>Marks entry with validation</li>
+                <li>Salted, hashed passwords</li>
+            </ul>
+            <span class="version">v@(Version)</span>
+        </section>
 
-    <section class="signin-form">
-        <h2>Try it now</h2>
-        <p class="hint">Pick a role to sign in with a demo account. No registration needed.</p>
+        <section class="signin-form">
+            <h2>Welcome back</h2>
+            <p class="hint">Sign in to continue to your dashboard.</p>
 
-        <div class="quick">
-            <button class="btn btn-primary" disabled="@_busy" @onclick="() => QuickSignIn(DemoAccount.Instructor)">Try as instructor</button>
-            <button class="btn btn-success" disabled="@_busy" @onclick="() => QuickSignIn(DemoAccount.Student)">Try as student</button>
-        </div>
+            <form @onsubmit="SignInAsync" @onsubmit:preventDefault>
+                <div class="field">
+                    <label class="field-label bold" for="username">Username</label>
+                    <input id="username" class="textbox large" type="text" maxlength="50" autocomplete="username"
+                           value="@_username" @oninput="e => { _username = e.Value?.ToString() ?? string.Empty; _error = null; }" disabled="@_busy" />
+                </div>
+                <div class="field">
+                    <div class="row">
+                        <label class="field-label bold" for="password" style="margin:0">Password</label>
+                        <label class="check"><input type="checkbox" @bind="_showPassword" tabindex="-1" /> Show</label>
+                    </div>
+                    <input id="password" class="textbox large" type="@(_showPassword ? "text" : "password")" maxlength="128" autocomplete="current-password"
+                           value="@_password" @oninput="e => { _password = e.Value?.ToString() ?? string.Empty; _error = null; }" disabled="@_busy" />
+                </div>
+                <div class="row">
+                    <label class="check"><input type="checkbox" @bind="_remember" /> Remember my username</label>
+                    <button type="button" class="link-label" @onclick="ForgotPassword">Forgot password?</button>
+                </div>
+                <div style="margin-top:18px">
+                    <button type="submit" class="btn btn-primary btn-wide" disabled="@_busy">@(_busy ? "Signing in..." : "Sign in")</button>
+                </div>
+            </form>
 
-        <div class="divider">or sign in manually</div>
+            <div class="error" role="alert">@_error</div>
 
-        <form @onsubmit="SignInAsync" @onsubmit:preventDefault>
-            <div class="field">
-                <label for="username">Username</label>
-                <input id="username" type="text" autocomplete="username" @bind="_username" disabled="@_busy" />
+            <div class="bottom-links">
+                <button type="button" class="link-label muted" @onclick="DatabaseSettings">Database settings</button>
+                <button type="button" class="link-label muted" @onclick="DemoAccounts">Demo accounts</button>
             </div>
-            <div class="field">
-                <label for="password">Password</label>
-                <input id="password" type="password" autocomplete="current-password" @bind="_password" disabled="@_busy" />
-            </div>
-            <button type="submit" class="btn btn-primary btn-block" disabled="@_busy">@(_busy ? "Signing in..." : "Sign in")</button>
-        </form>
-
-        @if (_error is not null)
-        {
-            <div class="alert alert-error" role="alert">@_error</div>
-        }
-
-        <p class="creds">
-            Demo accounts: <code>instructor</code> / <code>Instructor@123</code>,
-            <code>jsmith</code> / <code>Student@123</code> (also <code>ejohnson</code>, <code>mbrown</code>, <code>jgarcia</code>...).
-            Everything you change stays in this browser tab only.
-        </p>
-    </section>
-</div>
+        </section>
+    </div>
+</DesktopWindow>
 
 @code {
-    private enum DemoAccount { Instructor, Student }
+    private const string RememberKey = "sgs.rememberedUsername";
 
     private string _username = string.Empty;
     private string _password = string.Empty;
     private string? _error;
     private bool _busy;
+    private bool _showPassword;
+    private bool _remember;
+
+    private static string Version
+    {
+        get
+        {
+            Version? v = typeof(DemoPage).Assembly.GetName().Version;
+            return v is null ? "1.0.0" : $"{v.Major}.{v.Minor}.{v.Build}";
+        }
+    }
 
     protected override void OnInitialized()
     {
@@ -68,40 +83,85 @@
         }
     }
 
-    private Task QuickSignIn(DemoAccount account)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        (_username, _password) = account == DemoAccount.Instructor
-            ? (StudentGradingSystem.Data.InMemory.DemoData.InstructorUsername, StudentGradingSystem.Data.InMemory.DemoData.InstructorPassword)
-            : (StudentGradingSystem.Data.InMemory.DemoData.StudentUsername, StudentGradingSystem.Data.InMemory.DemoData.StudentPassword);
-        return SignInAsync();
+        if (!firstRender)
+        {
+            return;
+        }
+
+        string? remembered = await JS.InvokeAsync<string?>("sgsGetItem", RememberKey);
+        if (!string.IsNullOrWhiteSpace(remembered))
+        {
+            _username = remembered;
+            _remember = true;
+            StateHasChanged();
+            await JS.InvokeVoidAsync("sgsFocus", "password");
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("sgsFocus", "username");
+        }
     }
 
     private async Task SignInAsync()
     {
-        _error = null;
-        if (string.IsNullOrWhiteSpace(_username) || string.IsNullOrEmpty(_password))
+        string username = _username.Trim();
+        if (username.Length == 0 || _password.Length == 0)
         {
             _error = "Enter your username and password.";
             return;
         }
 
         _busy = true;
+        _error = null;
         StateHasChanged();
         try
         {
-            AuthenticatedUser? user = await Session.SignInAsync(_username, _password);
+            AuthenticatedUser? user = await Session.SignInAsync(username, _password);
             if (user is null)
             {
                 _error = "Incorrect username or password.";
-                _password = string.Empty;
+                await JS.InvokeVoidAsync("sgsFocus", "password");
                 return;
             }
 
+            await JS.InvokeVoidAsync("sgsSetItem", RememberKey, _remember ? username : null);
             Nav.NavigateTo(Session.HomeUrl);
         }
         finally
         {
             _busy = false;
+        }
+    }
+
+    private Task ForgotPassword() => Dialogs.InfoAsync(
+        "Passwords are managed by your instructor or system administrator.\nAsk them to reset yours.");
+
+    private Task DatabaseSettings() => Dialogs.InfoAsync(
+        "In the desktop app this opens the MySQL connection settings.\n\n" +
+        "This browser preview doesn't use a database: it runs on sample data that stays in your browser and resets when you reload.");
+
+    private async Task DemoAccounts()
+    {
+        string? choice = await Dialogs.ShowAsync(
+            "The sample database includes these accounts:\n\n" +
+            "Instructor:   instructor  /  Instructor@123\n" +
+            "Student:       jsmith  /  Student@123\n" +
+            "                    (also ejohnson, mbrown, sdavis, dwilson, jlee, ...)\n\n" +
+            "These are for demos only.",
+            DialogIcon.Information,
+            "Sign in as instructor", "Sign in as student", "OK");
+
+        if (choice == "Sign in as instructor")
+        {
+            (_username, _password) = ("instructor", "Instructor@123");
+            await SignInAsync();
+        }
+        else if (choice == "Sign in as student")
+        {
+            (_username, _password) = ("jsmith", "Student@123");
+            await SignInAsync();
         }
     }
 }

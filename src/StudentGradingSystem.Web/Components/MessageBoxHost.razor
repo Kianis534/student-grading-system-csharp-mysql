@@ -1,0 +1,67 @@
+@implements IDisposable
+@inject DialogService Dialogs
+
+@if (Dialogs.Current is { } request)
+{
+    <div class="modal-backdrop" @onkeydown="OnKeyDown">
+        <div class="msgbox" role="dialog" aria-modal="true" aria-label="Student Grading System">
+            <div class="titlebar">
+                <span class="app-icon">A+</span>
+                <span class="caption">Student Grading System</span>
+                <span class="caption-buttons">
+                    <button type="button" aria-label="Close" @onclick="() => Dialogs.Close(null)">
+                        <svg viewBox="0 0 10 10"><path d="M0 0 L10 10 M10 0 L0 10" stroke="currentColor" stroke-width="1.1" /></svg>
+                    </button>
+                </span>
+            </div>
+            <div class="msgbox-body">
+                <span class="msgbox-icon @IconClass(request.Icon)">@IconGlyph(request.Icon)</span>
+                <div>@request.Message</div>
+            </div>
+            <div class="msgbox-buttons">
+                @for (int i = 0; i < request.Buttons.Count; i++)
+                {
+                    string button = request.Buttons[i];
+                    bool isDefault = IsDefault(request, i);
+                    <button type="button" class="@(isDefault ? "default" : "")" @onclick="() => Dialogs.Close(button)">@button</button>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    protected override void OnInitialized() => Dialogs.Changed += OnChanged;
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    // Like MessageBoxDefaultButton.Button2 for Yes/No questions: the safe answer is the default.
+    private static bool IsDefault(DialogRequest request, int index) =>
+        request.Buttons.Count == 2 && request.Buttons[0] == "Yes" ? index == 1 : index == request.Buttons.Count - 1;
+
+    private void OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            Dialogs.Close(null);
+        }
+    }
+
+    private static string IconClass(DialogIcon icon) => icon switch
+    {
+        DialogIcon.Warning => "warning",
+        DialogIcon.Error => "error",
+        DialogIcon.Question => "question",
+        _ => "info",
+    };
+
+    private static string IconGlyph(DialogIcon icon) => icon switch
+    {
+        DialogIcon.Warning => "!",
+        DialogIcon.Error => "×",
+        DialogIcon.Question => "?",
+        _ => "i",
+    };
+
+    public void Dispose() => Dialogs.Changed -= OnChanged;
+}

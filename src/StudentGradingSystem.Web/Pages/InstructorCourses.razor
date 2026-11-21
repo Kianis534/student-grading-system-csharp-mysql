@@ -3,58 +3,84 @@
 
 <PageTitle>Courses - Student Grading System demo</PageTitle>
 
-<div class="page-head">
-    <h1>Courses</h1>
-    <p>Signed in as @Session.User?.DisplayName &middot; open a course to manage its assessments, marks and grades.</p>
-</div>
-
-<div class="card">
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>Code</th>
-                    <th>Course</th>
-                    <th>Semester</th>
-                    <th class="num">Students</th>
-                    <th class="num">Assessments</th>
-                    <th class="num">Weightage set</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (CourseSummary course in _courses)
-                {
-                    <tr class="clickable" @onclick="() => Open(course)">
-                        <td class="strong">@course.Code</td>
-                        <td>@course.Title</td>
-                        <td class="muted">@course.Semester</td>
-                        <td class="num">@course.EnrolledStudents</td>
-                        <td class="num">@course.ActivityCount</td>
-                        <td class="num">@Format(course.AllocatedWeightage)%</td>
-                        <td class="num"><a href="instructor/courses/@course.CourseId" @onclick:stopPropagation>Open</a></td>
+<DesktopWindow Title="Student Grading System - Courses" Width="980" Height="600" OnClose="SignOut" CloseLabel="Close (signs out)"
+               HeaderTitle="Courses"
+               HeaderSubtitle="@($"Signed in as {Session.User?.DisplayName}{Dot}Open a course to manage its assessments, marks and grades.")">
+    <div class="win-content">
+        <div class="grid-wrap" tabindex="0" @onkeydown="OnGridKey">
+            <table class="grid">
+                <thead>
+                    <tr>
+                        <th style="width:90px">Code</th>
+                        <th class="fill">Course</th>
+                        <th style="width:120px">Semester</th>
+                        <th class="num" style="width:100px">Students</th>
+                        <th class="num" style="width:120px">Assessments</th>
+                        <th class="num" style="width:130px">Weightage set</th>
                     </tr>
-                }
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @for (int i = 0; i < _courses.Count; i++)
+                    {
+                        int index = i;
+                        CourseSummary course = _courses[i];
+                        <tr class="selectable @(index == _selected ? "selected" : "")" @onclick="() => _selected = index" @ondblclick="Open">
+                            <td>@course.Code</td>
+                            <td>@course.Title</td>
+                            <td>@course.Semester</td>
+                            <td class="num">@course.EnrolledStudents</td>
+                            <td class="num">@course.ActivityCount</td>
+                            <td class="num">@Format(course.AllocatedWeightage)%</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     </div>
-</div>
-
-<p class="muted">
-    @_courses.Count courses &middot; @_courses.Count(c => c.AllocatedWeightage >= 100m) with assessments totalling 100%.
-    Tip: <strong>CS301</strong> is fully graded and <strong>CS201</strong> is in progress.
-</p>
+    <div class="win-footer">
+        <button class="btn btn-secondary" style="min-width:130px" @onclick="SignOut">Sign out</button>
+        <span class="status">@_courses.Count courses@(Dot)@_courses.Count(c => c.AllocatedWeightage >= 100m) with assessments totalling 100%</span>
+        <div class="right">
+            <button class="btn btn-secondary" style="min-width:120px" @onclick="Load">Refresh</button>
+            <button class="btn btn-primary" style="min-width:160px" disabled="@(_selected < 0)" @onclick="Open">Open course</button>
+        </div>
+    </div>
+</DesktopWindow>
 
 @code {
     private IReadOnlyList<CourseSummary> _courses = Array.Empty<CourseSummary>();
+    private int _selected = -1;
 
     protected override void OnInitialized()
     {
         if (EnsureRole(UserRole.Instructor))
         {
-            _courses = Session.Courses.GetCourses();
+            Load();
         }
     }
 
-    private void Open(CourseSummary course) => Nav.NavigateTo($"instructor/courses/{course.CourseId}");
+    private void Load()
+    {
+        _courses = Session.Courses.GetCourses();
+        _selected = _courses.Count > 0 ? Math.Max(0, Math.Min(_selected, _courses.Count - 1)) : -1;
+    }
+
+    private void Open()
+    {
+        if (_selected >= 0)
+        {
+            Nav.NavigateTo($"instructor/courses/{_courses[_selected].CourseId}");
+        }
+    }
+
+    private void OnGridKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            Open();
+            return;
+        }
+
+        _selected = MoveSelection(e, _selected, _courses.Count);
+    }
 }
