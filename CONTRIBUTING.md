@@ -17,6 +17,8 @@ Thanks for taking the time to improve Student Grading System. Bug reports, fixes
    dotnet test StudentGradingSystem.sln -c Release
    ```
 
+   To work on the live demo, run `dotnet run --project src/StudentGradingSystem.Web` and open the URL it prints.
+
 3. To also run the MySQL integration tests, point them at a server you don't mind them using
    (each run creates and drops its own `sgs_test_*` database):
 
@@ -27,7 +29,8 @@ Thanks for taking the time to improve Student Grading System. Bug reports, fixes
 
 ## Guidelines
 
-- **Keep the layers separate.** Business rules and SQL live in `StudentGradingSystem.Core`; forms only call services.
+- **Keep the layers separate.** Business rules live in `StudentGradingSystem.Core` (no UI, no database). SQL lives in `StudentGradingSystem.Data.MySql`. Forms and Razor pages only call services.
+- **Keep both stores in sync.** The live demo runs on `StudentGradingSystem.Data.InMemory`. If you change repository behaviour, update both implementations and their tests.
 - **Parameterize every query.** Never build SQL by concatenating user input.
 - **Add tests.** New rules go with unit tests; new queries go with an integration test.
 - **No secrets in commits.** `Database.config` and `.env` are git-ignored - keep it that way.

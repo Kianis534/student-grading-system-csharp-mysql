@@ -9,6 +9,7 @@
 Instructors set up assessments, enter marks and calculate weighted final grades.<br/>
 Students sign in to see their results and exactly how every mark counts.
 
+[![Live demo](https://img.shields.io/badge/live%20demo-try%20in%20your%20browser-2563EB?logo=googlechrome&logoColor=white)](https://kianis534.github.io/student-grading-system-csharp-mysql/)
 [![CI](https://github.com/Kianis534/student-grading-system-csharp-mysql/actions/workflows/ci.yml/badge.svg)](https://github.com/Kianis534/student-grading-system-csharp-mysql/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/Kianis534/student-grading-system-csharp-mysql?label=release)](https://github.com/Kianis534/student-grading-system-csharp-mysql/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -17,6 +18,7 @@ Students sign in to see their results and exactly how every mark counts.
 ![MySQL 8](https://img.shields.io/badge/MySQL-8.0%2B-4479A1?logo=mysql&logoColor=white)
 ![Windows](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?logo=windows&logoColor=white)
 
+[**Live demo**](https://kianis534.github.io/student-grading-system-csharp-mysql/) ·
 [**Download**](https://github.com/Kianis534/student-grading-system-csharp-mysql/releases/latest) ·
 [Getting started](#getting-started) ·
 [Screenshots](#screenshots) ·
@@ -27,11 +29,20 @@ Students sign in to see their results and exactly how every mark counts.
 
 </div>
 
+> [!TIP]
+> **Try it in your browser, no download needed: [kianis534.github.io/student-grading-system-csharp-mysql](https://kianis534.github.io/student-grading-system-csharp-mysql/)**
+> Click *Try as instructor* or *Try as student* and use the real workflow.
+
+> [!IMPORTANT]
+> **The live demo is for previewing only.** It runs on sample data that lives in your browser tab: nothing is saved to a server, and everything resets when you reload the page.
+> To use the system for real, [download the desktop app](#getting-started) and connect it to **your own MySQL database**. The download, database setup and configuration work exactly as described in [Getting started](#getting-started).
+
 ---
 
 ## Contents
 
 - [Features](#features)
+- [Live demo](#live-demo)
 - [Screenshots](#screenshots)
 - [Tech stack](#tech-stack)
 - [Getting started](#getting-started)
@@ -71,15 +82,39 @@ Students sign in to see their results and exactly how every mark counts.
 - **In-progress courses:** see marks earned so far before the final grade is released.
 
 ### Under the hood
-- **Layered architecture:** domain logic and data access live in a separate, UI-free library (`StudentGradingSystem.Core`).
+- **Layered architecture:** business rules live in a storage-agnostic library (`StudentGradingSystem.Core`) shared by the desktop app and the browser demo. MySQL and in-memory storage are interchangeable implementations of the same repository interfaces.
 - **Secure sign-in:** salted PBKDF2-SHA256 password hashes, constant-time comparison and timing-safe handling of unknown usernames.
 - **Safe data access:** parameterized SQL everywhere, transactions for multi-row writes, and students restricted to their own courses at the SQL level.
 - **Database-enforced rules:** foreign keys, unique keys and `CHECK` constraints back up the application's validation.
 - **No secrets in the repo:** connection settings come from an environment variable or a git-ignored config file, and there's an in-app **Database settings** dialog with a connection test.
 - **Friendly errors:** common setup problems (MySQL not running, wrong password, missing tables) are explained in plain language. Unexpected errors are logged.
-- **96 automated tests:** unit tests plus MySQL integration tests, run on every push by GitHub Actions.
+- **107 automated tests:** unit tests, MySQL integration tests and in-memory store tests, run on every push by GitHub Actions.
+
+## Live demo
+
+**[https://kianis534.github.io/student-grading-system-csharp-mysql/](https://kianis534.github.io/student-grading-system-csharp-mysql/)**
+
+The live demo lets anyone explore the app in a browser without installing anything. It runs the **same C# business logic** as the desktop app (grading rules, validation, sign-in and services from `StudentGradingSystem.Core`), compiled to WebAssembly with Blazor, but it stores data in memory instead of MySQL.
+
+| | Live demo (browser) | Full app (download) |
+| --- | --- | --- |
+| Purpose | Look around and try the features | Day-to-day use with real data |
+| Runs on | Any modern browser, desktop or phone | Windows 10/11 |
+| Data | Sample data in your browser tab only | **Your own MySQL database** |
+| Saved? | No, resets when you reload or click *Reset demo data* | Yes, permanently in MySQL |
+| Accounts | Demo accounts only | The demo accounts plus your own data |
+| Setup | None | [Getting started](#getting-started): download, create the database, connect |
+
+<p align="center">
+  <img src="docs/images/live-demo-sign-in.jpg" alt="Live demo sign-in page with one-click demo accounts" width="400" />
+  <img src="docs/images/live-demo-grades.jpg" alt="Live demo final grades page with statistics and grade distribution" width="400" />
+</p>
+
+> Each visitor gets a private copy of the sample data, so nothing you do in the demo is visible to anyone else. There's no server or database behind it at all.
 
 ## Screenshots
+
+These are from the desktop app.
 
 | Sign in | Instructor: courses |
 | :---: | :---: |
@@ -96,16 +131,20 @@ Students sign in to see their results and exactly how every mark counts.
 | Layer | Technology |
 | --- | --- |
 | Language | C# 12 |
-| UI | Windows Forms on .NET Framework 4.8 (data-bound `DataGridView`, DPI-aware) |
+| Desktop UI | Windows Forms on .NET Framework 4.8 (data-bound `DataGridView`, DPI-aware) |
+| Live demo | Blazor WebAssembly (.NET 10), hosted on GitHub Pages |
 | Data access | [MySqlConnector](https://mysqlconnector.net/) with plain ADO.NET and parameterized SQL |
 | Database | MySQL 8.0.16+ (8.4 LTS recommended) |
 | Security | PBKDF2-HMAC-SHA256 password hashing (`Rfc2898DeriveBytes`) |
 | Testing | xUnit, with integration tests against a real MySQL server |
 | Tooling | SDK-style projects, `.editorconfig`, nullable reference types, .NET analyzers |
-| CI | GitHub Actions on Windows (build, tests, packaging) and Ubuntu (database scripts in Docker) |
+| CI/CD | GitHub Actions: Windows (build, tests, packaging), Ubuntu (database scripts in Docker), GitHub Pages deployment for the live demo |
 | Local database | Optional Docker Compose setup (MySQL 8.4) |
 
 ## Getting started
+
+> Just want to look around? Use the [live demo](https://kianis534.github.io/student-grading-system-csharp-mysql/). It needs no setup, but its data resets on reload.
+> The steps below install the **full app** and connect it to **your own MySQL database**, so your data is kept.
 
 ### Prerequisites
 
@@ -299,31 +338,38 @@ The rules live in [`GradeCalculator`](src/StudentGradingSystem.Core/Grading/Grad
 ## Architecture
 
 ```mermaid
-flowchart LR
-    subgraph UI["StudentGradingSystem (WinForms)"]
-        Forms["Forms<br/>Login · Dashboards · Marks entry · Grades"]
-        Infra["Infrastructure<br/>AppServices · AppConfiguration · Theme"]
+flowchart TB
+    subgraph Apps["User interfaces"]
+        Desktop["StudentGradingSystem<br/>Windows Forms desktop app"]
+        Web["StudentGradingSystem.Web<br/>Blazor WebAssembly live demo"]
     end
 
-    subgraph Core["StudentGradingSystem.Core (no UI)"]
+    subgraph Core["StudentGradingSystem.Core (no UI, no database)"]
         Services["Services<br/>AuthService · CourseService<br/>GradingService · ResultsService"]
         Domain["Domain rules<br/>GradeCalculator · GradeScale<br/>ActivityRules · PasswordHasher"]
-        Repos["Repositories<br/>IUserRepository · ICourseRepository<br/>IActivityRepository · IMarksRepository<br/>IGradeRepository"]
+        Ports["Repository interfaces<br/>IUserRepository · ICourseRepository<br/>IActivityRepository · IMarksRepository · IGradeRepository"]
     end
 
+    MySqlRepos["StudentGradingSystem.Data.MySql<br/>MySqlConnector, parameterized SQL"]
+    MemoryRepos["StudentGradingSystem.Data.InMemory<br/>sample data in the browser"]
     DB[("MySQL 8<br/>StudentGradingSystem")]
 
-    Forms --> Services
-    Infra --> Services
+    Desktop --> Services
+    Web --> Services
     Services --> Domain
-    Services --> Repos
-    Repos -- "MySqlConnector<br/>parameterized SQL" --> DB
+    Services --> Ports
+    MySqlRepos -. implements .-> Ports
+    MemoryRepos -. implements .-> Ports
+    Desktop --> MySqlRepos
+    Web --> MemoryRepos
+    MySqlRepos --> DB
 ```
 
-- **Forms** only handle display and input. They get an `AppServices` object (the composition root) and never touch SQL.
+- **User interfaces** only handle display and input. The desktop app wires everything up in `AppServices` (its composition root) and the web demo in `DemoSession`. Neither touches SQL.
 - **Services** coordinate each use case: sign-in, adding an assessment, saving marks, calculating grades.
 - **Domain rules** are pure functions with no database or UI dependencies, so they're easy to unit test.
-- **Repositories** hide the SQL behind interfaces. Services are tested with in-memory fakes, and the MySQL implementations get integration tests against a real server.
+- **Repository interfaces** keep storage out of the business logic. The MySQL implementation powers the real app, and the in-memory one powers the live demo and tests. Both are tested against the same scenarios.
+- **Core targets both .NET Framework 4.8 and .NET 10**, which is how the same code runs in the WinForms app and in the browser.
 
 ## Database schema
 
@@ -395,22 +441,28 @@ Rules the database enforces on its own:
 ```text
 student-grading-system-csharp-mysql/
 ├── src/
-│   ├── StudentGradingSystem/              # WinForms desktop app (UI layer)
+│   ├── StudentGradingSystem/              # Windows Forms desktop app (net48)
 │   │   ├── Forms/                         # Login, dashboards, assessments, marks entry, grades
 │   │   ├── Infrastructure/                # Configuration, composition root, theme, navigation, logging
 │   │   ├── Resources/app.ico
 │   │   ├── Database.example.config        # Connection template (copied to git-ignored Database.config)
 │   │   └── Program.cs
-│   └── StudentGradingSystem.Core/         # Business logic and data access (no UI)
-│       ├── Data/                          # Repository interfaces, MySQL implementations, error mapping
-│       ├── Grading/                       # Grade scale, weighted calculator, class statistics
-│       ├── Models/                        # Domain models
-│       ├── Reporting/                     # CSV export
-│       ├── Security/                      # PBKDF2 password hashing
-│       ├── Services/                      # Auth, course, grading and student results services
-│       └── Validation/                    # Assessment and marks rules
+│   ├── StudentGradingSystem.Core/         # Business logic shared by desktop and web (net48 + net10.0)
+│   │   ├── Data/                          # Repository interfaces
+│   │   ├── Grading/                       # Grade scale, weighted calculator, class statistics
+│   │   ├── Models/                        # Domain models
+│   │   ├── Reporting/                     # CSV export
+│   │   ├── Security/                      # PBKDF2 password hashing
+│   │   ├── Services/                      # Auth, course, grading and student results services
+│   │   └── Validation/                    # Assessment and marks rules
+│   ├── StudentGradingSystem.Data.MySql/   # MySQL repositories and friendly error mapping
+│   ├── StudentGradingSystem.Data.InMemory/ # In-memory repositories + sample data (live demo, tests)
+│   └── StudentGradingSystem.Web/          # Blazor WebAssembly live demo (net10.0)
+│       ├── Pages/                         # Sign in, courses, marks entry, grades, student views
+│       ├── Services/DemoSession.cs        # One private demo per browser tab
+│       └── wwwroot/                       # index.html, styles, icons
 ├── tests/
-│   └── StudentGradingSystem.Core.Tests/   # xUnit unit + MySQL integration tests
+│   └── StudentGradingSystem.Core.Tests/   # xUnit: unit, MySQL integration and in-memory tests
 ├── database/
 │   ├── 01-schema.sql                      # Tables, keys and constraints
 │   ├── 02-seed.sql                        # Demo courses, students, accounts and marks
@@ -419,7 +471,7 @@ student-grading-system-csharp-mysql/
 │   ├── setup-database.ps1                 # Create the database and write Database.config
 │   └── package-release.ps1                # Build the release zip
 ├── docs/images/                           # Screenshots and demo GIF
-├── .github/                               # CI workflow, issue and PR templates
+├── .github/                               # CI, live demo deployment, issue and PR templates
 ├── docker-compose.yml                     # Local MySQL 8.4 with schema and demo data
 ├── .env.example                           # Template for docker compose settings
 ├── Directory.Build.props                  # Shared build settings and version
@@ -439,7 +491,7 @@ $env:SGS_TEST_CONNECTION_STRING = "Server=localhost;Port=3306;User ID=root;Passw
 dotnet test StudentGradingSystem.sln -c Release
 ```
 
-What's covered (96 tests):
+What's covered (107 tests):
 
 | Area | Examples |
 | --- | --- |
@@ -449,13 +501,22 @@ What's covered (96 tests):
 | Services | Sign-in (including timing-safe unknown users and hash upgrades), grading, all-or-nothing marks saving |
 | CSV export | Quoting, escaping and formula-injection protection |
 | MySQL integration | Seeded logins, course summaries, app vs. SQL grade parity, unique constraints, transactional saves, cascading deletes, enrolment-based access, error classification |
+| In-memory store (live demo) | The same scenarios as the MySQL tests, so the demo behaves like the real app, plus sample-data parity with `02-seed.sql` |
 
 ## Continuous integration
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push and pull request:
 
-- **Windows job:** restores, builds with warnings treated as errors, starts MySQL 8.4, runs all 96 tests, packages the release zip and uploads it with the test results as build artifacts.
+- **Windows job:** restores, builds with warnings treated as errors, starts MySQL 8.4, runs all 107 tests, packages the release zip and uploads it with the test results as build artifacts.
 - **Database job (Ubuntu):** starts the Docker Compose stack, checks the schema and seed data, and confirms the scripts can safely run again.
+
+[`.github/workflows/pages.yml`](.github/workflows/pages.yml) publishes the Blazor WebAssembly demo to GitHub Pages whenever the web app or the shared logic changes.
+
+To run the live demo locally:
+
+```bash
+dotnet run --project src/StudentGradingSystem.Web
+```
 
 To build a release zip locally:
 
@@ -475,6 +536,7 @@ Read [SECURITY.md](SECURITY.md) for the full list and how to report a vulnerabil
 
 | You see | What to do |
 | --- | --- |
+| My changes disappeared in the live demo | That's by design. The [live demo](https://kianis534.github.io/student-grading-system-csharp-mysql/) keeps data only in your browser tab and resets on reload. Use the desktop app with your own MySQL database to keep data. |
 | *"The database connection hasn't been set up yet."* | `Database.config` still holds the template password. Fill in **Database settings** or run the setup script. |
 | *"Can't reach the MySQL server."* | Start MySQL (*Services* > **MySQL80** > Start, or `docker compose up -d`) and check the server name and port. |
 | *"MySQL rejected the username or password."* | Fix the credentials in **Database settings**. Use **Test connection** to check before saving. |

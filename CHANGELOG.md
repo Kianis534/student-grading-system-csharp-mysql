@@ -3,6 +3,17 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] - 2026-11-22
+
+### Added
+- **Live demo** at https://kianis534.github.io/student-grading-system-csharp-mysql/: a Blazor WebAssembly version that runs in the browser with sample data (preview only, resets on reload), deployed to GitHub Pages by a new workflow.
+- `StudentGradingSystem.Data.InMemory`: in-memory repositories and sample data matching `02-seed.sql`, with tests that mirror the MySQL integration tests.
+
+### Changed
+- MySQL code moved out of `StudentGradingSystem.Core` into `StudentGradingSystem.Data.MySql`. Core no longer depends on any database and targets both .NET Framework 4.8 and .NET 10.
+- `AuthService` accepts the PBKDF2 work factor to upgrade hashes to (the desktop app keeps 210,000 iterations).
+- On .NET 10, password hashing uses `Rfc2898DeriveBytes.Pbkdf2` (the constructors are obsolete there).
+
 ## [1.0.0] - 2026-11-22
 
 First public release.
@@ -28,4 +39,5 @@ First public release.
 - Navigating back and forth no longer leaves hidden windows running in the background; closing the dashboard now exits the app.
 - The grades view no longer shows the marks-entry controls.
 
+[1.1.0]: https://github.com/Kianis534/student-grading-system-csharp-mysql/releases/tag/v1.1.0
 [1.0.0]: https://github.com/Kianis534/student-grading-system-csharp-mysql/releases/tag/v1.0.0
