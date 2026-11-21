@@ -1,0 +1,36 @@
+# Local MySQL 8.4 for Student Grading System.
+#
+#   1. cp .env.example .env        (then set your own passwords in .env)
+#   2. docker compose up -d --wait
+#
+# On first start the schema and demo data in ./database are loaded automatically.
+# Point the app at it with: Server=localhost;Port=<MYSQL_PORT>;Database=StudentGradingSystem;
+#                           User ID=<MYSQL_USER>;Password=<MYSQL_PASSWORD>
+#
+# Reset everything (deletes all data):  docker compose down -v
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: sgs-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env (see .env.example)}
+      MYSQL_DATABASE: StudentGradingSystem
+      MYSQL_USER: ${MYSQL_USER:-sgs_app}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env (see .env.example)}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./database/01-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./database/02-seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+volumes:
+  mysql-data:
