@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <RootNamespace>StudentGradingSystem.Core</RootNamespace>
+    <AssemblyName>StudentGradingSystem.Core</AssemblyName>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- XML docs are written for the public API surface; don't fail on every trivial member. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <Description>Domain logic and MySQL data access for the Student Grading System.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MySqlConnector" Version="2.6.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="StudentGradingSystem.Core.Tests" />
+  </ItemGroup>
+
+</Project>
