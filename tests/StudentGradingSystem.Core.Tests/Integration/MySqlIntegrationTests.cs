@@ -6,6 +6,7 @@ using StudentGradingSystem.Core.Data;
 using StudentGradingSystem.Core.Models;
 using StudentGradingSystem.Core.Services;
 using StudentGradingSystem.Core.Validation;
+using StudentGradingSystem.Data.MySql;
 using Xunit;
 
 namespace StudentGradingSystem.Core.Tests.Integration;

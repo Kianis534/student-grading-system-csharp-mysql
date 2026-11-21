@@ -4,7 +4,7 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using MySqlConnector;
-using StudentGradingSystem.Core.Data;
+using StudentGradingSystem.Data.MySql;
 using StudentGradingSystem.Infrastructure;
 
 namespace StudentGradingSystem.Forms;

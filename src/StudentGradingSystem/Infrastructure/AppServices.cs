@@ -1,4 +1,4 @@
-using StudentGradingSystem.Core.Data;
+using StudentGradingSystem.Data.MySql;
 using StudentGradingSystem.Core.Services;
 
 namespace StudentGradingSystem.Infrastructure;

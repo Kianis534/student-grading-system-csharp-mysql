@@ -2,7 +2,7 @@ using System;
 using System.Data;
 using MySqlConnector;
 
-namespace StudentGradingSystem.Core.Data;
+namespace StudentGradingSystem.Data.MySql;
 
 /// <summary>Creates open connections to the application database.</summary>
 public interface IConnectionFactory

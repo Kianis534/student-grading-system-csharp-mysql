@@ -1,19 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net48</TargetFramework>
+    <!-- net48 for the desktop app, net10.0 for the browser demo. No database dependencies. -->
+    <TargetFrameworks>net48;net10.0</TargetFrameworks>
     <RootNamespace>StudentGradingSystem.Core</RootNamespace>
     <AssemblyName>StudentGradingSystem.Core</AssemblyName>
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!-- XML docs are written for the public API surface; don't fail on every trivial member. -->
     <NoWarn>$(NoWarn);CS1591</NoWarn>
-    <Description>Domain logic and MySQL data access for the Student Grading System.</Description>
+    <Description>Domain model, business rules and services for the Student Grading System (storage-agnostic).</Description>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="MySqlConnector" Version="2.6.2" />
-  </ItemGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="StudentGradingSystem.Core.Tests" />

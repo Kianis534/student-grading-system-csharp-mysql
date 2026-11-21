@@ -2,10 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using MySqlConnector;
+using StudentGradingSystem.Core.Data;
 using StudentGradingSystem.Core.Grading;
 using StudentGradingSystem.Core.Models;
 
-namespace StudentGradingSystem.Core.Data;
+namespace StudentGradingSystem.Data.MySql;
 
 // Every query below is parameterized; user input is never concatenated into SQL.
 

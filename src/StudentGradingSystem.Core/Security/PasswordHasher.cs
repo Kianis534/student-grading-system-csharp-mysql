@@ -20,7 +20,8 @@ public static class PasswordHasher
     /// <summary>Work factor used for new hashes.</summary>
     public const int DefaultIterations = 210_000;
 
-    internal const int MinimumIterations = 10_000;
+    /// <summary>Lowest work factor accepted when hashing or verifying.</summary>
+    public const int MinimumIterations = 10_000;
     private const int SaltSizeBytes = 16;
     private const int HashSizeBytes = 32;
 
@@ -99,8 +100,12 @@ public static class PasswordHasher
 
     private static byte[] Derive(string password, byte[] salt, int iterations, int length)
     {
+#if NET
+        return Rfc2898DeriveBytes.Pbkdf2(password, salt, iterations, HashAlgorithmName.SHA256, length);
+#else
         using var pbkdf2 = new Rfc2898DeriveBytes(password, salt, iterations, HashAlgorithmName.SHA256);
         return pbkdf2.GetBytes(length);
+#endif
     }
 
     /// <summary>Constant-time comparison so timing doesn't leak how many bytes matched.</summary>

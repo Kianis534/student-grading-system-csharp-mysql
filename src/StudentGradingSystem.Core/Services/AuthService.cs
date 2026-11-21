@@ -15,9 +15,23 @@ public sealed class AuthService
         "pbkdf2-sha256$210000$+SWrG5aEv+vU/wQm/YdeMw==$7fvX2uJBz+vukpf8C6MmjzT3f1qtM6ZAkuQUtEZWd0w=";
 
     private readonly IUserRepository _users;
+    private readonly int _targetIterations;
 
-    public AuthService(IUserRepository users) =>
+    /// <param name="users">Where accounts are stored.</param>
+    /// <param name="targetIterations">
+    /// PBKDF2 work factor that stored hashes are upgraded to on sign-in. The desktop app uses the default;
+    /// the in-browser demo uses a lower value because WebAssembly has no hardware-accelerated crypto.
+    /// </param>
+    public AuthService(IUserRepository users, int targetIterations = PasswordHasher.DefaultIterations)
+    {
         _users = users ?? throw new ArgumentNullException(nameof(users));
+        if (targetIterations < PasswordHasher.MinimumIterations)
+        {
+            throw new ArgumentOutOfRangeException(nameof(targetIterations));
+        }
+
+        _targetIterations = targetIterations;
+    }
 
     /// <summary>
     /// Returns the signed-in user, or <c>null</c> when the username or password is wrong.
@@ -64,9 +78,9 @@ public sealed class AuthService
         string[] parts = account.PasswordHash.Split('$');
         if (parts.Length == 4
             && int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out int iterations)
-            && iterations < PasswordHasher.DefaultIterations)
+            && iterations < _targetIterations)
         {
-            _users.UpdatePasswordHash(account.UserId, PasswordHasher.Hash(password));
+            _users.UpdatePasswordHash(account.UserId, PasswordHasher.Hash(password, _targetIterations));
         }
     }
 

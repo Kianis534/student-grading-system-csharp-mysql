@@ -1,7 +1,7 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
-using StudentGradingSystem.Core.Data;
+using StudentGradingSystem.Data.MySql;
 
 namespace StudentGradingSystem.Infrastructure;
 

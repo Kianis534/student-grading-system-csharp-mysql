@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- net48 so the test suite can cover it, net10.0 for the Blazor WebAssembly demo. -->
+    <TargetFrameworks>net48;net10.0</TargetFrameworks>
+    <RootNamespace>StudentGradingSystem.Data.InMemory</RootNamespace>
+    <AssemblyName>StudentGradingSystem.Data.InMemory</AssemblyName>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <Description>In-memory repositories and demo data for the Student Grading System (used by the browser demo and tests).</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\StudentGradingSystem.Core\StudentGradingSystem.Core.csproj" />
+  </ItemGroup>
+
+</Project>

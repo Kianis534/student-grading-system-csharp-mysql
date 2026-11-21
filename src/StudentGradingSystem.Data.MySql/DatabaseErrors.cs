@@ -1,7 +1,7 @@
 using System;
 using MySqlConnector;
 
-namespace StudentGradingSystem.Core.Data;
+namespace StudentGradingSystem.Data.MySql;
 
 /// <summary>How a database failure should be presented to the user.</summary>
 public enum DatabaseErrorKind

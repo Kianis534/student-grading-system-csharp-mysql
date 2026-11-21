@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\StudentGradingSystem.Core\StudentGradingSystem.Core.csproj" />
+    <ProjectReference Include="..\StudentGradingSystem.Data.MySql\StudentGradingSystem.Data.MySql.csproj" />
   </ItemGroup>
 
   <ItemGroup>

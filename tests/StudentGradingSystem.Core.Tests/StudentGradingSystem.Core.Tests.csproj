@@ -19,6 +19,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\StudentGradingSystem.Core\StudentGradingSystem.Core.csproj" />
+    <ProjectReference Include="..\..\src\StudentGradingSystem.Data.MySql\StudentGradingSystem.Data.MySql.csproj" />
+    <ProjectReference Include="..\..\src\StudentGradingSystem.Data.InMemory\StudentGradingSystem.Data.InMemory.csproj" />
   </ItemGroup>
 
   <!-- Integration tests build a throwaway database from the real scripts. -->

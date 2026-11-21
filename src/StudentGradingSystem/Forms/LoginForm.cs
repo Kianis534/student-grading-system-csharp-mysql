@@ -2,7 +2,7 @@ using System;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using StudentGradingSystem.Core.Data;
+using StudentGradingSystem.Data.MySql;
 using StudentGradingSystem.Core.Models;
 using StudentGradingSystem.Infrastructure;
 
