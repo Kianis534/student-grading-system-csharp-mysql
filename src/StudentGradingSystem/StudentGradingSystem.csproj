@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <RootNamespace>StudentGradingSystem</RootNamespace>
+    <AssemblyName>StudentGradingSystem</AssemblyName>
+    <AssemblyTitle>Student Grading System</AssemblyTitle>
+    <Description>Desktop grading system for instructors and students (C# WinForms + MySQL).</Description>
+    <ApplicationIcon>Resources\app.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Configuration" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\StudentGradingSystem.Core\StudentGradingSystem.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Template that is committed to git. Shipped next to the .exe so users can recreate their config. -->
+    <None Update="Database.example.config" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Your local settings (git-ignored). Copied next to the .exe when it changes. -->
+    <None Update="Database.config" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!--
+    First build after cloning: create Database.config from the template so there is a file to edit.
+    The real file is git-ignored, so credentials never end up in the repository.
+  -->
+  <Target Name="EnsureLocalDatabaseConfig" BeforeTargets="BeforeBuild" Condition="!Exists('$(MSBuildProjectDirectory)\Database.config')">
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\Database.example.config" DestinationFiles="$(MSBuildProjectDirectory)\Database.config" />
+    <ItemGroup>
+      <None Include="$(MSBuildProjectDirectory)\Database.config" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+    <Message Importance="high" Text="Created src\StudentGradingSystem\Database.config from the template. Edit it with your MySQL credentials (it is git-ignored)." />
+  </Target>
+
+  <ItemGroup>
+    <Compile Update="Forms\*.cs" SubType="Form" />
+    <Compile Update="Forms\*.Designer.cs" SubType="" />
+  </ItemGroup>
+
+</Project>
