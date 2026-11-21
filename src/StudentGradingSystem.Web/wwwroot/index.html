@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Student Grading System - Live Demo (C#, Blazor WebAssembly)</title>
+    <meta name="description" content="Try the Student Grading System in your browser: add assessments, enter marks and calculate weighted grades as an instructor, or view results as a student. Built with C#; the desktop app uses WinForms and MySQL." />
+    <meta property="og:title" content="Student Grading System - Live Demo" />
+    <meta property="og:description" content="Assessments, marks and weighted final grades for instructors and students. Runs entirely in your browser." />
+    <meta property="og:type" content="website" />
+    <meta name="theme-color" content="#2563eb" />
+    <base href="/" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
+    <link rel="preload" id="webassembly" />
+    <link rel="stylesheet" href="css/app.css" />
+    <script type="importmap"></script>
+</head>
+
+<body>
+    <div id="app">
+        <div class="boot">
+            <img src="img/logo.png" alt="" width="64" height="64" />
+            <h1>Student Grading System</h1>
+            <p>Loading the live demo&hellip;</p>
+            <div class="boot-bar"><span></span></div>
+            <noscript>This demo needs JavaScript and WebAssembly enabled.</noscript>
+        </div>
+    </div>
+
+    <div id="blazor-error-ui">
+        Something went wrong in the demo.
+        <a href="." class="reload">Reload</a>
+        <span class="dismiss">&times;</span>
+    </div>
+
+    <script>
+        // Saves exported grades as a CSV file (UTF-8 with BOM so Excel reads names correctly).
+        window.sgsDownloadCsv = function (fileName, content) {
+            const blob = new Blob(["﻿" + content], { type: "text/csv;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+        };
+    </script>
+    <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
+</body>
+
+</html>

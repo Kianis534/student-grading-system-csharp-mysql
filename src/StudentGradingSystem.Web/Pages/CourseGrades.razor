@@ -1,0 +1,123 @@
+@page "/instructor/courses/{CourseId:int}/grades"
+@inherits DemoPage
+@inject IJSRuntime JS
+
+<PageTitle>Final grades - Student Grading System demo</PageTitle>
+
+@if (_course is null)
+{
+    <div class="alert alert-warning">This course doesn't exist. <a href="instructor">Back to courses</a></div>
+    return;
+}
+
+<div class="breadcrumb"><a href="instructor">Courses</a> / <a href="instructor/courses/@CourseId">@_course.Code</a> / Final grades</div>
+
+<div class="page-head">
+    <h1>Final grades</h1>
+    <p>@_course.DisplayName &middot; @_course.Semester</p>
+</div>
+
+@if (Calculated)
+{
+    <div class="alert alert-success">Grades recalculated just now for @_grades.Count students.</div>
+}
+
+@if (_grades.Count == 0)
+{
+    <div class="card"><div class="card-body">
+        <h2>No grades yet</h2>
+        <p class="muted">Open the course and click <strong>Calculate grades</strong> to generate final grades.</p>
+        <a class="btn btn-primary" href="instructor/courses/@CourseId">Go to the course</a>
+    </div></div>
+    return;
+}
+
+<div class="stats">
+    <div class="stat"><div class="value">@Percent(_stats!.Average)</div><div class="label">Class average</div></div>
+    <div class="stat"><div class="value">@Percent(_stats.Highest)</div><div class="label">Highest</div></div>
+    <div class="stat"><div class="value">@Percent(_stats.Lowest)</div><div class="label">Lowest</div></div>
+    <div class="stat"><div class="value">@_stats.Passed / @_stats.Count</div><div class="label">Passed</div></div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <h2>Grade distribution</h2>
+        <div class="distribution">
+            @foreach (KeyValuePair<string, int> band in _stats.Distribution)
+            {
+                <div class="bar">
+                    <b>@band.Value</b>
+                    <i style="height:@BarHeight(band.Value)%"></i>
+                    <span>@band.Key</span>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Student ID</th>
+                    <th>Student</th>
+                    <th class="num">Percentage</th>
+                    <th class="center">Grade</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (StudentGrade grade in _grades)
+                {
+                    <tr>
+                        <td class="muted">@grade.StudentId</td>
+                        <td>@grade.StudentName</td>
+                        <td class="num">@Percent(grade.Percentage)</td>
+                        <td class="center"><GradeBadge Grade="@grade.FinalGrade" /></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="actions">
+    <a class="btn btn-light" href="instructor/courses/@CourseId">Back to course</a>
+    <button class="btn btn-primary" @onclick="ExportAsync">Export to CSV</button>
+</div>
+
+@code {
+    [Parameter]
+    public int CourseId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "calculated")]
+    public bool Calculated { get; set; }
+
+    private CourseSummary? _course;
+    private IReadOnlyList<StudentGrade> _grades = Array.Empty<StudentGrade>();
+    private GradeStatistics? _stats;
+
+    protected override void OnParametersSet()
+    {
+        if (!EnsureRole(UserRole.Instructor))
+        {
+            return;
+        }
+
+        _course = Session.Courses.GetCourse(CourseId);
+        _grades = Session.Grading.GetGrades(CourseId);
+        _stats = GradeStatistics.From(_grades.ToList());
+    }
+
+    private int BarHeight(int count)
+    {
+        int max = Math.Max(1, _stats!.Distribution.Values.Max());
+        return count == 0 ? 2 : (int)Math.Round(100.0 * count / max);
+    }
+
+    private async Task ExportAsync()
+    {
+        string csv = StudentGradingSystem.Core.Reporting.GradeReportCsv.ToCsv(_grades);
+        await JS.InvokeVoidAsync("sgsDownloadCsv", $"{_course!.Code}-final-grades.csv", csv);
+    }
+}

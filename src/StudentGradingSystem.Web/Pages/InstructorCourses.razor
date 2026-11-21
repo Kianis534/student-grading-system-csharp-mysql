@@ -1,0 +1,60 @@
+@page "/instructor"
+@inherits DemoPage
+
+<PageTitle>Courses - Student Grading System demo</PageTitle>
+
+<div class="page-head">
+    <h1>Courses</h1>
+    <p>Signed in as @Session.User?.DisplayName &middot; open a course to manage its assessments, marks and grades.</p>
+</div>
+
+<div class="card">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Course</th>
+                    <th>Semester</th>
+                    <th class="num">Students</th>
+                    <th class="num">Assessments</th>
+                    <th class="num">Weightage set</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (CourseSummary course in _courses)
+                {
+                    <tr class="clickable" @onclick="() => Open(course)">
+                        <td class="strong">@course.Code</td>
+                        <td>@course.Title</td>
+                        <td class="muted">@course.Semester</td>
+                        <td class="num">@course.EnrolledStudents</td>
+                        <td class="num">@course.ActivityCount</td>
+                        <td class="num">@Format(course.AllocatedWeightage)%</td>
+                        <td class="num"><a href="instructor/courses/@course.CourseId" @onclick:stopPropagation>Open</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<p class="muted">
+    @_courses.Count courses &middot; @_courses.Count(c => c.AllocatedWeightage >= 100m) with assessments totalling 100%.
+    Tip: <strong>CS301</strong> is fully graded and <strong>CS201</strong> is in progress.
+</p>
+
+@code {
+    private IReadOnlyList<CourseSummary> _courses = Array.Empty<CourseSummary>();
+
+    protected override void OnInitialized()
+    {
+        if (EnsureRole(UserRole.Instructor))
+        {
+            _courses = Session.Courses.GetCourses();
+        }
+    }
+
+    private void Open(CourseSummary course) => Nav.NavigateTo($"instructor/courses/{course.CourseId}");
+}

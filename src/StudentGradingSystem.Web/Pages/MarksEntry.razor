@@ -1,0 +1,204 @@
+@page "/instructor/courses/{CourseId:int}/assessments/{ActivityId:int}"
+@inherits DemoPage
+
+<PageTitle>Enter marks - Student Grading System demo</PageTitle>
+
+@if (_course is null || _activity is null)
+{
+    <div class="alert alert-warning">This assessment doesn't exist. <a href="instructor">Back to courses</a></div>
+    return;
+}
+
+<div class="breadcrumb"><a href="instructor">Courses</a> / <a href="instructor/courses/@CourseId">@_course.Code</a> / @_activity.Name</div>
+
+<div class="page-head">
+    <h1>Enter marks &middot; @_activity.Name</h1>
+    <p>@_course.DisplayName &middot; out of @Format(_activity.TotalMarks) &middot; @Format(_activity.Weightage)% of the final grade</p>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <span class="muted">Type marks for each student. Leave a box empty if the student hasn't been marked yet.</span>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Student ID</th>
+                    <th>Student</th>
+                    <th class="num">Obtained marks (/@Format(_activity.TotalMarks))</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (Row row in _rows)
+                {
+                    <tr>
+                        <td class="muted">@row.StudentId</td>
+                        <td>@row.Name</td>
+                        <td class="num" style="width:220px">
+                            <input type="text" inputmode="decimal" aria-label="Marks for @row.Name"
+                                   class="@(row.Error is null ? "" : "invalid")" style="text-align:right"
+                                   value="@row.Text" @oninput="e => OnInput(row, e.Value?.ToString())" />
+                            @if (row.Error is not null)
+                            {
+                                <div class="field-error">@row.Error</div>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@if (_saved)
+{
+    <div class="alert alert-success">Marks saved. Recalculate grades on the course page to update final results.</div>
+}
+
+<div class="actions">
+    @if (_confirmLeave)
+    {
+        <div class="alert alert-warning" style="margin:0">
+            You have unsaved marks.
+            <button class="btn btn-danger btn-sm" @onclick="Leave">Discard and go back</button>
+            <button class="btn btn-light btn-sm" @onclick="() => _confirmLeave = false">Keep editing</button>
+        </div>
+    }
+    else
+    {
+        <button class="btn btn-light" @onclick="Back">Back</button>
+    }
+    <div class="right">
+        <span class="muted" style="align-self:center">@Status</span>
+        <button class="btn btn-primary" disabled="@(!IsDirty || HasErrors)" @onclick="Save">Save marks</button>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int CourseId { get; set; }
+
+    [Parameter]
+    public int ActivityId { get; set; }
+
+    private sealed class Row
+    {
+        public int StudentId { get; init; }
+
+        public string Name { get; init; } = string.Empty;
+
+        public decimal? Saved { get; set; }
+
+        public string Text { get; set; } = string.Empty;
+
+        public decimal? Value { get; set; }
+
+        public string? Error { get; set; }
+    }
+
+    private CourseSummary? _course;
+    private Activity? _activity;
+    private List<Row> _rows = new();
+    private bool _saved;
+    private bool _confirmLeave;
+
+    private bool IsDirty => _rows.Any(r => r.Error is null && r.Value != r.Saved) || HasErrors;
+
+    private bool HasErrors => _rows.Any(r => r.Error is not null);
+
+    private string Status
+    {
+        get
+        {
+            int marked = _rows.Count(r => r.Value.HasValue && r.Error is null);
+            string text = $"{marked} of {_rows.Count} marked";
+            if (HasErrors)
+            {
+                return text + " · fix the highlighted boxes";
+            }
+
+            return IsDirty ? text + " · unsaved changes" : text;
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (!EnsureRole(UserRole.Instructor))
+        {
+            return;
+        }
+
+        _course = Session.Courses.GetCourse(CourseId);
+        _activity = Session.Courses.GetActivities(CourseId).FirstOrDefault(a => a.ActivityId == ActivityId);
+        if (_activity is null)
+        {
+            return;
+        }
+
+        _rows = Session.Courses.GetMarks(ActivityId)
+            .Select(m => new Row
+            {
+                StudentId = m.StudentId,
+                Name = m.StudentName,
+                Saved = m.ObtainedMarks,
+                Value = m.ObtainedMarks,
+                Text = m.ObtainedMarks?.ToString("0.##") ?? string.Empty,
+            })
+            .ToList();
+    }
+
+    private void OnInput(Row row, string? text)
+    {
+        _saved = false;
+        row.Text = text ?? string.Empty;
+        string trimmed = row.Text.Trim();
+
+        if (trimmed.Length == 0)
+        {
+            row.Value = null;
+            row.Error = null;
+            return;
+        }
+
+        if (!decimal.TryParse(trimmed, out decimal value))
+        {
+            row.Error = "Enter a number.";
+            return;
+        }
+
+        ValidationResult check = ActivityRules.ValidateObtainedMarks(value, _activity!.TotalMarks);
+        row.Value = value;
+        row.Error = check.IsValid ? null : check.Error;
+    }
+
+    private void Save()
+    {
+        var entries = _rows.Select(r => new StudentMarkEntry(r.StudentId, r.Name, r.Value)).ToList();
+        ValidationResult result = Session.Courses.SaveMarks(_activity!, entries);
+        if (!result.IsValid)
+        {
+            return;
+        }
+
+        foreach (Row row in _rows)
+        {
+            row.Saved = row.Value;
+        }
+
+        _saved = true;
+    }
+
+    private void Back()
+    {
+        if (IsDirty)
+        {
+            _confirmLeave = true;
+            return;
+        }
+
+        Leave();
+    }
+
+    private void Leave() => Nav.NavigateTo($"instructor/courses/{CourseId}");
+}

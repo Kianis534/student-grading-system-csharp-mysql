@@ -1,0 +1,63 @@
+﻿@inherits LayoutComponentBase
+@implements IDisposable
+@inject DemoSession Session
+@inject NavigationManager Nav
+
+<div class="demo-banner" role="note">
+    <strong>Live demo</strong> &middot; sample data stored only in your browser &middot; resets when you reload.
+    For real use, <a href="@RepoUrl#getting-started" target="_blank" rel="noopener">download the desktop app</a> and connect your own MySQL database.
+</div>
+
+@if (Session.User is { } user)
+{
+    <header class="topbar">
+        <a class="brand" href="@Session.HomeUrl">
+            <span class="logo">A+</span>
+            <span>Student Grading System</span>
+        </a>
+        <div class="topbar-actions">
+            <span class="who">
+                @if (!string.Equals(user.DisplayName, RoleLabel(user.Role), StringComparison.OrdinalIgnoreCase))
+                {
+                    @user.DisplayName
+                }
+                <span class="pill">@RoleLabel(user.Role)</span>
+            </span>
+            <button class="btn btn-ghost" title="Undo every change you made in this demo" @onclick="ResetDemo">Reset demo data</button>
+            <button class="btn btn-light" @onclick="SignOut">Sign out</button>
+        </div>
+    </header>
+}
+
+<main>
+    @Body
+</main>
+
+<footer class="site-footer">
+    Built with C# &middot; this demo runs on Blazor WebAssembly with in-memory data; the desktop app uses Windows Forms and MySQL.
+    <a href="@RepoUrl" target="_blank" rel="noopener">Source code on GitHub</a>
+</footer>
+
+@code {
+    private const string RepoUrl = "https://github.com/Kianis534/student-grading-system-csharp-mysql";
+
+    protected override void OnInitialized() => Session.Changed += OnSessionChanged;
+
+    private static string RoleLabel(UserRole role) => role == UserRole.Instructor ? "Instructor" : "Student";
+
+    private void OnSessionChanged() => InvokeAsync(StateHasChanged);
+
+    private void SignOut()
+    {
+        Session.SignOut();
+        Nav.NavigateTo(string.Empty);
+    }
+
+    private void ResetDemo()
+    {
+        Session.Reset();
+        Nav.NavigateTo(string.Empty);
+    }
+
+    public void Dispose() => Session.Changed -= OnSessionChanged;
+}

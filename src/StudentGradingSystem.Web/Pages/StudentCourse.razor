@@ -1,0 +1,95 @@
+@page "/student/courses/{CourseId:int}"
+@inherits DemoPage
+
+<PageTitle>Course marks - Student Grading System demo</PageTitle>
+
+@if (_details is null)
+{
+    <div class="alert alert-warning">You aren't enrolled in this course. <a href="student">Back to your courses</a></div>
+    return;
+}
+
+<div class="breadcrumb"><a href="student">My courses</a> / @_details.Course.Code</div>
+
+<div class="page-head">
+    <h1>@_details.Course.Code &middot; @_details.Course.Title</h1>
+    <p>@Session.User?.DisplayName &middot; @_details.Course.Semester</p>
+</div>
+
+<div class="card">
+    <div class="card-body result-tile">
+        <div class="grade-box">
+            <span class="letter">@(_details.Course.FinalGrade ?? "-")</span>
+            <small>@(_details.Course.IsGraded ? "FINAL GRADE" : "NOT GRADED")</small>
+        </div>
+        <div>
+            @if (_details.Course.IsGraded)
+            {
+                <h2>@Percent(_details.Course.Percentage!.Value) overall</h2>
+                <p class="muted">Based on @_details.Activities.Count assessments worth @Format(Assessed)% of the course.</p>
+            }
+            else if (_details.Activities.Count == 0)
+            {
+                <h2>No assessments yet</h2>
+                <p class="muted">Your instructor hasn't added any assessments to this course.</p>
+            }
+            else
+            {
+                <h2>@Format(Earned)% earned so far</h2>
+                <p class="muted">
+                    @_details.Activities.Count(a => a.ObtainedMarks.HasValue) of @_details.Activities.Count assessments marked,
+                    covering @Format(Assessed)% of the final grade. The final grade appears once your instructor releases it.
+                </p>
+            }
+        </div>
+    </div>
+    @if (_details.Activities.Count > 0)
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Assessment</th>
+                        <th class="num">Obtained</th>
+                        <th class="num">Out of</th>
+                        <th class="num">Weightage</th>
+                        <th class="num">Counts toward grade</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (ActivityResult activity in _details.Activities)
+                    {
+                        <tr>
+                            <td>@activity.ActivityName</td>
+                            <td class="num strong">@(activity.ObtainedMarks is decimal m ? Format(m) : "Not marked")</td>
+                            <td class="num">@Format(activity.TotalMarks)</td>
+                            <td class="num">@Format(activity.Weightage)%</td>
+                            <td class="num">@Percent(activity.Contribution)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<a class="btn btn-light" href="student">Back to my courses</a>
+
+@code {
+    [Parameter]
+    public int CourseId { get; set; }
+
+    private CourseDetails? _details;
+
+    private decimal Assessed => _details?.Activities.Sum(a => a.Weightage) ?? 0m;
+
+    private decimal Earned => _details?.Activities.Sum(a => a.Contribution) ?? 0m;
+
+    protected override void OnParametersSet()
+    {
+        if (EnsureRole(UserRole.Student))
+        {
+            _details = Session.Results.GetCourseDetails(Session.User!.StudentId!.Value, CourseId);
+        }
+    }
+}

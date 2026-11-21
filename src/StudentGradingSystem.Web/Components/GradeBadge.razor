@@ -1,0 +1,17 @@
+@* Colour-coded letter grade. *@
+<span class="badge @CssClass">@(Grade ?? "Not graded")</span>
+
+@code {
+    [Parameter]
+    public string? Grade { get; set; }
+
+    private string CssClass => Grade switch
+    {
+        null => "badge-none",
+        "F" => "badge-f",
+        "D" => "badge-d",
+        _ when Grade.StartsWith('A') => "badge-a",
+        _ when Grade.StartsWith('B') => "badge-b",
+        _ => "badge-c",
+    };
+}

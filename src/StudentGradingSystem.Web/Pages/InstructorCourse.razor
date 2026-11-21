@@ -1,0 +1,196 @@
+@page "/instructor/courses/{CourseId:int}"
+@inherits DemoPage
+
+<PageTitle>@(_course?.Code ?? "Course") - Student Grading System demo</PageTitle>
+
+@if (_course is null)
+{
+    <div class="alert alert-warning">This course doesn't exist. <a href="instructor">Back to courses</a></div>
+    return;
+}
+
+<div class="breadcrumb"><a href="instructor">Courses</a> / @_course.Code</div>
+
+<div class="page-head">
+    <h1>@_course.Code &middot; @_course.Title</h1>
+    <p>@_course.Semester &middot; @_course.EnrolledStudents students enrolled &middot; @_activities.Count assessments</p>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <h2>Final grade weightage</h2>
+        <div class="weight">
+            <div class="progress @(Remaining == 0 ? "full" : "")"><span style="width:@(Math.Min(100m, Allocated).ToString("0.##"))%"></span></div>
+            <strong>@Format(Allocated)% allocated</strong>
+            <span class="muted">@(Remaining == 0 ? "ready to grade" : $"{Format(Remaining)}% remaining")</span>
+        </div>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Assessment</th>
+                    <th class="num">Total marks</th>
+                    <th class="num">Weightage</th>
+                    <th class="num">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (_activities.Count == 0)
+                {
+                    <tr><td colspan="4" class="muted">No assessments yet. Add the first one below.</td></tr>
+                }
+                @foreach (Activity activity in _activities)
+                {
+                    <tr>
+                        <td class="strong">@activity.Name</td>
+                        <td class="num">@Format(activity.TotalMarks)</td>
+                        <td class="num">@Format(activity.Weightage)%</td>
+                        <td class="num">
+                            @if (_confirmDeleteId == activity.ActivityId)
+                            {
+                                <span class="muted">Delete it and its marks?</span>
+                                <button class="btn btn-danger btn-sm" @onclick="() => Delete(activity)">Delete</button>
+                                <button class="btn btn-light btn-sm" @onclick="() => _confirmDeleteId = null">Cancel</button>
+                            }
+                            else
+                            {
+                                <a class="btn btn-success btn-sm" href="instructor/courses/@CourseId/assessments/@activity.ActivityId">Enter marks</a>
+                                <button class="btn btn-light btn-sm" @onclick="() => _confirmDeleteId = activity.ActivityId">Delete</button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <h2>Add an assessment</h2>
+        <form @onsubmit="Add" @onsubmit:preventDefault>
+            <div class="form-row">
+                <div class="grow">
+                    <label for="name">Name</label>
+                    <input id="name" type="text" list="suggestions" maxlength="@ActivityRules.MaxNameLength" placeholder="e.g. Quiz 2" @bind="_newName" />
+                    <datalist id="suggestions">
+                        @foreach (string suggestion in ActivityRules.SuggestedNames)
+                        {
+                            <option value="@suggestion"></option>
+                        }
+                    </datalist>
+                </div>
+                <div>
+                    <label for="total">Total marks</label>
+                    <input id="total" type="number" min="0.01" max="1000" step="0.01" @bind="_newTotal" />
+                </div>
+                <div>
+                    <label for="weight">Weightage (%)</label>
+                    <input id="weight" type="number" min="0.01" max="100" step="0.01" @bind="_newWeight" />
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-success" disabled="@(Remaining == 0)">Add assessment</button>
+                </div>
+            </div>
+        </form>
+        @if (_formError is not null)
+        {
+            <div class="alert alert-error">@_formError</div>
+        }
+        @if (_message is not null)
+        {
+            <div class="alert alert-success">@_message</div>
+        }
+    </div>
+</div>
+
+@if (_confirmPartial)
+{
+    <div class="alert alert-warning">
+        Only @Format(Allocated)% of the final grade is allocated. Students are graded out of 100%, so missing weightage counts as zero.
+        <button class="btn btn-primary btn-sm" @onclick="() => Calculate(force: true)">Calculate anyway</button>
+        <button class="btn btn-light btn-sm" @onclick="() => _confirmPartial = false">Cancel</button>
+    </div>
+}
+
+<div class="actions">
+    <a class="btn btn-light" href="instructor">Back to courses</a>
+    <div class="right">
+        <a class="btn btn-light" href="instructor/courses/@CourseId/grades">View grades</a>
+        <button class="btn btn-primary" disabled="@(_activities.Count == 0)" @onclick="() => Calculate(force: false)">Calculate grades</button>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int CourseId { get; set; }
+
+    private CourseSummary? _course;
+    private IReadOnlyList<Activity> _activities = Array.Empty<Activity>();
+    private string _newName = string.Empty;
+    private decimal _newTotal = 10;
+    private decimal _newWeight = 10;
+    private string? _formError;
+    private string? _message;
+    private int? _confirmDeleteId;
+    private bool _confirmPartial;
+
+    private decimal Allocated => _activities.Sum(a => a.Weightage);
+
+    private decimal Remaining => Math.Max(0m, ActivityRules.MaxCourseWeightage - Allocated);
+
+    protected override void OnParametersSet()
+    {
+        if (EnsureRole(UserRole.Instructor))
+        {
+            Load();
+        }
+    }
+
+    private void Load()
+    {
+        _course = Session.Courses.GetCourse(CourseId);
+        _activities = Session.Courses.GetActivities(CourseId);
+        if (Remaining > 0 && _newWeight > Remaining)
+        {
+            _newWeight = Remaining;
+        }
+    }
+
+    private void Add()
+    {
+        _message = null;
+        ValidationResult result = Session.Courses.AddActivity(CourseId, _newName, _newTotal, _newWeight, out Activity? created);
+        if (!result.IsValid)
+        {
+            _formError = result.Error;
+            return;
+        }
+
+        _formError = null;
+        _message = $"Added \"{created!.Name}\". Click \"Enter marks\" to record marks for it.";
+        _newName = string.Empty;
+        Load();
+    }
+
+    private void Delete(Activity activity)
+    {
+        Session.Courses.DeleteActivity(activity.ActivityId);
+        _confirmDeleteId = null;
+        _message = $"Deleted \"{activity.Name}\". Recalculate grades so final results reflect the change.";
+        Load();
+    }
+
+    private void Calculate(bool force)
+    {
+        if (!force && Remaining > 0)
+        {
+            _confirmPartial = true;
+            return;
+        }
+
+        Session.Grading.CalculateAndSaveGrades(CourseId);
+        Nav.NavigateTo($"instructor/courses/{CourseId}/grades?calculated=true");
+    }
+}
