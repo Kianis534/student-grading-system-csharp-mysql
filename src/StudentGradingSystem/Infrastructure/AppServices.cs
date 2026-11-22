@@ -20,7 +20,7 @@ internal sealed class AppServices
         var grades = new MySqlGradeRepository(connections);
 
         Auth = new AuthService(users);
-        Courses = new CourseService(courses, activities, marks);
+        Courses = new CourseService(courses, activities, marks, grades);
         Grading = new GradingService(activities, marks, grades);
         Results = new ResultsService(courses, marks);
     }

@@ -147,12 +147,12 @@
         Activity activity = _activities[_selected];
         bool confirmed = await Dialogs.ConfirmAsync(
             $"Delete \"{activity.Name}\" and every mark recorded for it?\n\n" +
-            "This can't be undone. Recalculate grades afterwards so final results reflect the change.",
+            "This can't be undone. If grades have been released, they're recalculated straight away.",
             destructive: true);
 
         if (confirmed)
         {
-            Session.Courses.DeleteActivity(activity.ActivityId);
+            Session.Courses.DeleteActivity(activity);
             Load();
         }
     }

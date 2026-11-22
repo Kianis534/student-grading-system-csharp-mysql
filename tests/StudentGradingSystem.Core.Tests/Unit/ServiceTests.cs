@@ -177,7 +177,7 @@ public class GradingAndCourseServiceTests
     public void AddActivity_ValidatesBeforeSaving()
     {
         var activities = new FakeActivities();
-        var service = new CourseService(new FakeCourses(), activities, new FakeMarks());
+        var service = new CourseService(new FakeCourses(), activities, new FakeMarks(), new FakeGrades());
 
         ValidationResult ok = service.AddActivity(1, "  Mid Term ", 50, 60, out Activity? created);
         ValidationResult tooMuch = service.AddActivity(1, "Final Exam", 100, 50, out Activity? rejected);
@@ -193,7 +193,7 @@ public class GradingAndCourseServiceTests
     public void SaveMarks_RejectsTheWholeBatchIfAnyEntryIsInvalid()
     {
         var marks = new FakeMarks();
-        var service = new CourseService(new FakeCourses(), new FakeActivities(), marks);
+        var service = new CourseService(new FakeCourses(), new FakeActivities(), marks, new FakeGrades());
         var activity = new Activity(1, 1, "Quiz 1", 10, 10);
         var entries = new[]
         {
@@ -206,5 +206,51 @@ public class GradingAndCourseServiceTests
         Assert.False(result.IsValid);
         Assert.StartsWith("Too High:", result.Error);
         Assert.Empty(marks.Saved);
+    }
+
+    [Fact]
+    public void SaveMarks_RecalculatesReleasedGrades()
+    {
+        var marks = new FakeMarks();
+        var grades = new FakeGrades();
+        var service = new CourseService(new FakeCourses(), new FakeActivities(), marks, grades);
+        grades.Stored[1] = new List<StudentGrade> { new StudentGrade(1, "Student", 92, "A") };
+        marks.Scores.Add(new StudentScores(1, "Student", new[] { new ActivityScore(100, 100, 40) }));
+
+        Assert.True(service.SaveMarks(new Activity(1, 1, "Final Exam", 100, 100), new[] { new StudentMarkEntry(1, "Student", 40) }).IsValid);
+
+        StudentGrade grade = Assert.Single(grades.Stored[1]);
+        Assert.Equal(40m, grade.Percentage);
+        Assert.Equal("F", grade.FinalGrade);
+    }
+
+    [Fact]
+    public void SaveMarks_LeavesCoursesWithoutReleasedGradesUngraded()
+    {
+        var marks = new FakeMarks();
+        var grades = new FakeGrades();
+        var service = new CourseService(new FakeCourses(), new FakeActivities(), marks, grades);
+        marks.Scores.Add(new StudentScores(1, "Student", new[] { new ActivityScore(100, 100, 40) }));
+
+        Assert.True(service.SaveMarks(new Activity(1, 1, "Final Exam", 100, 100), new[] { new StudentMarkEntry(1, "Student", 40) }).IsValid);
+
+        Assert.Empty(grades.GetGradesForCourse(1));
+    }
+
+    [Fact]
+    public void DeleteActivity_RecalculatesReleasedGrades()
+    {
+        var activities = new FakeActivities();
+        var marks = new FakeMarks();
+        var grades = new FakeGrades();
+        var service = new CourseService(new FakeCourses(), activities, marks, grades);
+        Activity quiz = activities.Add(1, "Quiz 1", 10, 50);
+        grades.Stored[1] = new List<StudentGrade> { new StudentGrade(1, "Student", 100, "A") };
+        marks.Scores.Add(new StudentScores(1, "Student", new[] { new ActivityScore(10, 50, 10) }));
+
+        Assert.True(service.DeleteActivity(quiz));
+
+        Assert.Equal(50m, Assert.Single(grades.Stored[1]).Percentage);
+        Assert.False(service.DeleteActivity(quiz));
     }
 }

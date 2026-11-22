@@ -34,7 +34,8 @@ public class MySqlIntegrationTests : IClassFixture<MySqlTestDatabase>
     private CourseService Courses => new CourseService(
         new MySqlCourseRepository(Connections),
         new MySqlActivityRepository(Connections),
-        new MySqlMarksRepository(Connections));
+        new MySqlMarksRepository(Connections),
+        new MySqlGradeRepository(Connections));
 
     private GradingService Grading => new GradingService(
         new MySqlActivityRepository(Connections),
@@ -148,11 +149,11 @@ public class MySqlIntegrationTests : IClassFixture<MySqlTestDatabase>
         entries.ForEach(e => e.ObtainedMarks = 7);
         Courses.SaveMarks(activity, entries);
 
-        Assert.True(Courses.DeleteActivity(activity.ActivityId));
+        Assert.True(Courses.DeleteActivity(activity));
 
         Assert.Empty(Courses.GetActivities(CS202));
         Assert.Empty(Courses.GetMarks(activity.ActivityId));
-        Assert.False(Courses.DeleteActivity(activity.ActivityId));
+        Assert.False(Courses.DeleteActivity(activity));
     }
 
     [MySqlFact]
