@@ -46,7 +46,30 @@ public partial class LoginForm : Form
             return;
         }
 
-        string? connectionString = AppConfiguration.GetConnectionString(out ConnectionStringSource source);
+        string? connectionString;
+        ConnectionStringSource source;
+        try
+        {
+            connectionString = AppConfiguration.GetConnectionString(out source);
+        }
+        catch (Exception ex) when (ex is System.Xml.XmlException || ex is System.IO.IOException || ex is UnauthorizedAccessException)
+        {
+            // Typically a hand-edited Database.config with an unescaped & or < in the password.
+            ShowError("Database.config can't be read.");
+            if (Dialogs.Confirm(
+                    this,
+                    $"Database.config next to the app can't be read:{Environment.NewLine}{ex.Message}{Environment.NewLine}{Environment.NewLine}" +
+                    "Open database settings and save the connection again?"))
+            {
+                if (OpenDatabaseSettings())
+                {
+                    ShowError("Database settings saved. Click \"Sign in\" to continue.");
+                }
+            }
+
+            return;
+        }
+
         if (AppConfiguration.IsUnconfigured(connectionString))
         {
             ShowError("The database connection hasn't been set up yet.");

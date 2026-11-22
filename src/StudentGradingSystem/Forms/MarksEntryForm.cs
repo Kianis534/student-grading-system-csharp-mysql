@@ -132,9 +132,14 @@ public partial class MarksEntryForm : Form
         btnSave.Enabled = dirty;
     }
 
+    // Marks never need a thousands separator. Allowing one made "7.5" parse as 75 on Windows set to a
+    // comma-decimal language (e.g. German), where "." is the group separator.
+    private const NumberStyles MarksStyle = NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite | NumberStyles.AllowDecimalPoint;
+
+    /// <summary>Accepts the Windows decimal separator, and "." everywhere.</summary>
     private static bool TryParseMarks(string text, out decimal value) =>
-        decimal.TryParse(text, NumberStyles.Number, CultureInfo.CurrentCulture, out value)
-        || decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out value);
+        decimal.TryParse(text, MarksStyle, CultureInfo.CurrentCulture, out value)
+        || decimal.TryParse(text, MarksStyle, CultureInfo.InvariantCulture, out value);
 
     private void gridMarks_CellEnter(object sender, DataGridViewCellEventArgs e)
     {
@@ -217,6 +222,12 @@ public partial class MarksEntryForm : Form
         {
             UpdateStatus();
         }
+    }
+
+    private void gridMarks_CurrentCellDirtyStateChanged(object sender, EventArgs e)
+    {
+        // CellValueChanged only fires once an edit is committed; enable Save while the first change is still being typed.
+        btnSave.Enabled = IsDirty || gridMarks.IsCurrentCellDirty;
     }
 
     private void gridMarks_DataError(object sender, DataGridViewDataErrorEventArgs e)
