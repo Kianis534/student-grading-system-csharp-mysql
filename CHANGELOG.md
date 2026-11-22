@@ -5,6 +5,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-22
+
 ### Fixed
 - Released grades went stale: after grades were calculated, changing marks or adding/deleting an assessment left the old grades in place, so students could see a grade that didn't match their marks. Released grades are now recalculated on every such change (courses without released grades stay ungraded).
 - Values with more than two decimal places (for example 9.999 out of 10) passed validation and were then rounded by MySQL, or turned into 0.00 and hit a CHECK constraint. They're now rejected with a clear message.
@@ -57,5 +59,7 @@ First public release.
 - Navigating back and forth no longer leaves hidden windows running in the background; closing the dashboard now exits the app.
 - The grades view no longer shows the marks-entry controls.
 
+[Unreleased]: https://github.com/Kianis534/student-grading-system-csharp-mysql/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/Kianis534/student-grading-system-csharp-mysql/releases/tag/v1.2.0
 [1.1.0]: https://github.com/Kianis534/student-grading-system-csharp-mysql/releases/tag/v1.1.0
 [1.0.0]: https://github.com/Kianis534/student-grading-system-csharp-mysql/releases/tag/v1.0.0
