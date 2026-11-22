@@ -65,10 +65,17 @@
         }
     }
 
-    private void ResetDemo()
+    private async Task ResetDemo()
     {
-        Session.Reset();
-        Nav.NavigateTo(string.Empty);
+        bool confirmed = await Dialogs.ConfirmAsync(
+            "Reset the demo?\n\nThis throws away every change you've made, including unsaved marks, and signs you out.",
+            destructive: true);
+
+        if (confirmed)
+        {
+            Session.Reset();
+            Nav.NavigateTo(string.Empty);
+        }
     }
 
     public void Dispose()
