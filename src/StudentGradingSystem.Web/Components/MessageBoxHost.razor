@@ -1,10 +1,11 @@
 @implements IDisposable
 @inject DialogService Dialogs
+@inject IJSRuntime JS
 
 @if (Dialogs.Current is { } request)
 {
     <div class="modal-backdrop" @onkeydown="OnKeyDown">
-        <div class="msgbox" role="dialog" aria-modal="true" aria-label="Student Grading System">
+        <div class="msgbox" role="alertdialog" aria-modal="true" aria-label="Student Grading System" aria-describedby="msgbox-message">
             <div class="titlebar">
                 <span class="app-icon">A+</span>
                 <span class="caption">Student Grading System</span>
@@ -16,14 +17,14 @@
             </div>
             <div class="msgbox-body">
                 <span class="msgbox-icon @IconClass(request.Icon)">@IconGlyph(request.Icon)</span>
-                <div>@request.Message</div>
+                <div id="msgbox-message">@request.Message</div>
             </div>
             <div class="msgbox-buttons">
                 @for (int i = 0; i < request.Buttons.Count; i++)
                 {
                     string button = request.Buttons[i];
                     bool isDefault = IsDefault(request, i);
-                    <button type="button" class="@(isDefault ? "default" : "")" @onclick="() => Dialogs.Close(button)">@button</button>
+                    <button type="button" id="@(isDefault ? "msgbox-default" : null)" class="@(isDefault ? "default" : "")" @onclick="() => Dialogs.Close(button)">@button</button>
                 }
             </div>
         </div>
@@ -31,7 +32,25 @@
 }
 
 @code {
+    // The dialog that currently has the keyboard focus (null once it has been handed back to the page).
+    private DialogRequest? _focused;
+
     protected override void OnInitialized() => Dialogs.Changed += OnChanged;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        DialogRequest? current = Dialogs.Current;
+        if (ReferenceEquals(current, _focused))
+        {
+            return;
+        }
+
+        // Like MessageBox.Show: the default button gets the focus, so Enter answers the dialog instead of
+        // reaching the window behind it. Closing it puts the focus back where it was.
+        bool opened = current is not null;
+        _focused = current;
+        await JS.InvokeVoidAsync(opened ? "sgsFocus" : "sgsRestoreFocus", "msgbox-default");
+    }
 
     private void OnChanged() => InvokeAsync(StateHasChanged);
 

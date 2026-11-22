@@ -1,9 +1,10 @@
 ﻿@inherits LayoutComponentBase
 @implements IDisposable
 @inject DemoSession Session
+@inject DialogService Dialogs
 @inject NavigationManager Nav
 
-<div class="preview-strip" role="note">
+<div class="preview-strip" role="note" inert="@DialogOpen">
     <span><strong>Live preview</strong> of the Windows desktop app &middot; sample data in your browser only &middot; resets when you reload.</span>
     @if (Session.IsSignedIn)
     {
@@ -19,11 +20,11 @@
     <a href="@RepoUrl#getting-started" target="_blank" rel="noopener">Get the real app (MySQL)</a>
 </div>
 
-<div class="stage">
+<div class="stage" inert="@DialogOpen">
     @Body
 </div>
 
-<p class="stage-note">
+<p class="stage-note" inert="@DialogOpen">
     Browser version of the desktop app, built with C# and Blazor WebAssembly. It mirrors the real windows but won't match them pixel for pixel.
     <a href="@RepoUrl" target="_blank" rel="noopener">Source code and desktop screenshots on GitHub</a>
 </p>
@@ -34,7 +35,14 @@
     private const string RepoUrl = "https://github.com/Kianis534/student-grading-system-csharp-mysql";
     private bool _busy;
 
-    protected override void OnInitialized() => Session.Changed += OnSessionChanged;
+    // While a message box is open the rest of the page is inert, as with a modal dialog on the desktop.
+    private bool DialogOpen => Dialogs.Current is not null;
+
+    protected override void OnInitialized()
+    {
+        Session.Changed += OnSessionChanged;
+        Dialogs.Changed += OnSessionChanged;
+    }
 
     private void OnSessionChanged() => InvokeAsync(StateHasChanged);
 
@@ -63,5 +71,9 @@
         Nav.NavigateTo(string.Empty);
     }
 
-    public void Dispose() => Session.Changed -= OnSessionChanged;
+    public void Dispose()
+    {
+        Session.Changed -= OnSessionChanged;
+        Dialogs.Changed -= OnSessionChanged;
+    }
 }
