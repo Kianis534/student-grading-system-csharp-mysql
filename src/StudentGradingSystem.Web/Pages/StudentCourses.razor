@@ -3,11 +3,11 @@
 
 <PageTitle>My courses - Student Grading System demo</PageTitle>
 
-<DesktopWindow Title="Student Grading System - My courses" Width="900" Height="580" OnClose="SignOut" CloseLabel="Close (signs out)"
+<DesktopWindow Title="Student Grading System - My courses" Width="900" Height="580" OnClose="SignOut" FocusHeader="false" CloseLabel="Close (signs out)"
                HeaderTitle="@($"Welcome, {Session.User?.DisplayName}")"
                HeaderSubtitle="@($"Your courses and results{Dot}Double-click a course to see your marks.")">
     <div class="win-content">
-        <div class="grid-wrap" tabindex="0" @onkeydown="OnGridKey">
+        <div class="grid-wrap" tabindex="0" data-autofocus @onkeydown="OnGridKey">
             <table class="grid">
                 <thead>
                     <tr>

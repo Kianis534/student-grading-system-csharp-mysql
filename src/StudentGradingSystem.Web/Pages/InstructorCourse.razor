@@ -8,11 +8,11 @@
     return;
 }
 
-<DesktopWindow Title="@($"Student Grading System - {_course.Code}")" Width="980" Height="640" OnClose="Back" CloseLabel="Close (back to courses)"
+<DesktopWindow Title="@($"Student Grading System - {_course.Code}")" Width="980" Height="640" OnClose="Back" FocusHeader="false" CloseLabel="Close (back to courses)"
                HeaderTitle="@_course.DisplayName"
                HeaderSubtitle="@($"{_course.Semester}{Dot}{_course.EnrolledStudents} students enrolled{Dot}{_activities.Count} assessments")">
     <div class="win-content">
-        <div class="grid-wrap" tabindex="0" @onkeydown="OnGridKey">
+        <div class="grid-wrap" tabindex="0" data-autofocus @onkeydown="OnGridKey">
             <table class="grid">
                 <thead>
                     <tr>
