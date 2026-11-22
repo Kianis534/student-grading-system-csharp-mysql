@@ -244,7 +244,9 @@
             row.Saved = row.Value;
         }
 
-        _savedAt = DateTime.Now.ToString("h:mm tt");
+        // Saving recalculates released grades, and students see them straight away, so say so.
+        bool released = Session.Grading.GetGrades(CourseId).Count > 0;
+        _savedAt = DateTime.Now.ToString("h:mm tt") + (released ? ". Released grades updated" : string.Empty);
         StateHasChanged();
         return true;
     }

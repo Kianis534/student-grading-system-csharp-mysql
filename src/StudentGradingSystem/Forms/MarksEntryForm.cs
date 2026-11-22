@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Data.Common;
 using System.Globalization;
 using System.Linq;
 using System.Windows.Forms;
@@ -96,12 +97,28 @@ public partial class MarksEntryForm : Form
             }
 
             TakeSnapshot();
-            UpdateStatus($"Saved at {DateTime.Now:t}.");
+            UpdateStatus($"Saved at {DateTime.Now:t}." + (HasReleasedGrades() ? " Released grades updated." : string.Empty));
             return true;
         }
         catch (Exception ex)
         {
             Dialogs.Error(this, ex, "Couldn't save marks.");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// True when the course's grades have been released, so saving just recalculated what students see.
+    /// Only used for the status line, so a database hiccup here never turns a successful save into an error.
+    /// </summary>
+    private bool HasReleasedGrades()
+    {
+        try
+        {
+            return _services.Grading.GetGrades(_course.CourseId).Count > 0;
+        }
+        catch (DbException)
+        {
             return false;
         }
     }
