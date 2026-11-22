@@ -16,6 +16,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Live demo: leaving marks entry with unsaved marks now asks first however you leave, including the browser's back button, reloading and closing the tab.
 
 ### Changed
+- Saving marks in a course whose grades are released now says so in the status line ("Released grades updated"), in the desktop app and the live demo.
+- Live demo: the Courses, My courses and course windows put the keyboard focus on their grid when they open, so the arrow keys and Enter work straight away, as in the desktop app.
+- Live demo: **Reset demo data** asks before throwing changes away.
 - Live demo restyled to mirror the desktop app: window frames with title bars, the same header bands, grid columns, button bars, Windows-style message boxes and keyboard shortcuts. The desktop app is unchanged.
 
 ## [1.1.0] - 2026-11-22
