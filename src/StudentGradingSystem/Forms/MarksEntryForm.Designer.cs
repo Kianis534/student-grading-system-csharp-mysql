@@ -157,6 +157,7 @@ namespace StudentGradingSystem.Forms
             this.gridMarks.CellParsing += new System.Windows.Forms.DataGridViewCellParsingEventHandler(this.gridMarks_CellParsing);
             this.gridMarks.CellValidating += new System.Windows.Forms.DataGridViewCellValidatingEventHandler(this.gridMarks_CellValidating);
             this.gridMarks.CellValueChanged += new System.Windows.Forms.DataGridViewCellEventHandler(this.gridMarks_CellValueChanged);
+            this.gridMarks.CurrentCellDirtyStateChanged += new System.EventHandler(this.gridMarks_CurrentCellDirtyStateChanged);
             this.gridMarks.DataError += new System.Windows.Forms.DataGridViewDataErrorEventHandler(this.gridMarks_DataError);
             //
             // colStudentId

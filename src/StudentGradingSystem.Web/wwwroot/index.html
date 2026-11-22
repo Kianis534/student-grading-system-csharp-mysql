@@ -41,6 +41,20 @@
             const element = document.getElementById(id);
             if (element) { element.focus(); if (element.select) { element.select(); } }
         };
+        // Remembers the last focused control outside a message box, so closing one returns the focus there.
+        document.addEventListener("focusin", function (e) {
+            if (!(e.target.closest && e.target.closest(".msgbox"))) { window.sgsLastFocus = e.target; }
+        });
+        window.sgsRestoreFocus = function () {
+            const element = window.sgsLastFocus;
+            if (element && element.isConnected && !element.closest("[inert]")) { element.focus(); }
+        };
+        // Ctrl+S / Cmd+S saves marks on the marks entry window instead of opening the browser's "Save page" dialog.
+        document.addEventListener("keydown", function (e) {
+            if ((e.ctrlKey || e.metaKey) && (e.key === "s" || e.key === "S") && document.querySelector("[data-save-shortcut]")) {
+                e.preventDefault();
+            }
+        });
         window.sgsGetItem = function (key) { try { return localStorage.getItem(key); } catch (e) { return null; } };
         window.sgsSetItem = function (key, value) {
             try { if (value) { localStorage.setItem(key, value); } else { localStorage.removeItem(key); } } catch (e) { }

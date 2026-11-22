@@ -5,6 +5,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Fixed
+- Released grades went stale: after grades were calculated, changing marks or adding/deleting an assessment left the old grades in place, so students could see a grade that didn't match their marks. Released grades are now recalculated on every such change (courses without released grades stay ungraded).
+- Values with more than two decimal places (for example 9.999 out of 10) passed validation and were then rounded by MySQL, or turned into 0.00 and hit a CHECK constraint. They're now rejected with a clear message.
+- Desktop marks entry on Windows set to a comma-decimal language read "7.5" as 75. Thousands separators are no longer accepted in marks.
+- Desktop **Save marks** stayed disabled while the first change was still being typed.
+- A hand-edited `Database.config` that wasn't valid XML (for example an unescaped `&` in the password) crashed sign-in with a generic error. It now explains the problem and offers to open database settings.
+- Live demo: message boxes now take the keyboard focus and lock the window behind them, as modal dialogs do. Before, Enter or Delete could still reach the grid behind an open confirmation.
+- Live demo: **Ctrl+S** / **Cmd+S** on marks entry no longer opens the browser's "Save page" dialog.
+- Live demo: leaving marks entry with unsaved marks now asks first however you leave, including the browser's back button, reloading and closing the tab.
+
 ### Changed
 - Live demo restyled to mirror the desktop app: window frames with title bars, the same header bands, grid columns, button bars, Windows-style message boxes and keyboard shortcuts. The desktop app is unchanged.
 

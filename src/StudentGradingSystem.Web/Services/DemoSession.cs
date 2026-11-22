@@ -36,7 +36,7 @@ public sealed class DemoSession
         var grades = new InMemoryGradeRepository(store);
 
         Auth = new AuthService(new InMemoryUserRepository(store), DemoData.PasswordIterations);
-        Courses = new CourseService(courses, activities, marks);
+        Courses = new CourseService(courses, activities, marks, grades);
         Grading = new GradingService(activities, marks, grades);
         Results = new ResultsService(courses, marks);
         User = null;

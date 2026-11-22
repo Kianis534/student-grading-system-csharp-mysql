@@ -7,18 +7,24 @@ using StudentGradingSystem.Core.Validation;
 
 namespace StudentGradingSystem.Core.Services;
 
-/// <summary>Instructor workflows for a course: assessments and marks entry.</summary>
+/// <summary>
+/// Instructor workflows for a course: assessments and marks entry. Once a course's grades have been released,
+/// every change to its assessments or marks recalculates them, so students never see a grade that no longer
+/// matches their marks.
+/// </summary>
 public sealed class CourseService
 {
     private readonly ICourseRepository _courses;
     private readonly IActivityRepository _activities;
     private readonly IMarksRepository _marks;
+    private readonly IGradeRepository _grades;
 
-    public CourseService(ICourseRepository courses, IActivityRepository activities, IMarksRepository marks)
+    public CourseService(ICourseRepository courses, IActivityRepository activities, IMarksRepository marks, IGradeRepository grades)
     {
         _courses = courses ?? throw new ArgumentNullException(nameof(courses));
         _activities = activities ?? throw new ArgumentNullException(nameof(activities));
         _marks = marks ?? throw new ArgumentNullException(nameof(marks));
+        _grades = grades ?? throw new ArgumentNullException(nameof(grades));
     }
 
     public IReadOnlyList<CourseSummary> GetCourses() => _courses.GetCourseSummaries();
@@ -40,10 +46,26 @@ public sealed class CourseService
         }
 
         created = _activities.Add(courseId, name!.Trim(), totalMarks, weightage);
+        RefreshReleasedGrades(courseId);
         return ValidationResult.Success;
     }
 
-    public bool DeleteActivity(int activityId) => _activities.Delete(activityId);
+    /// <summary>Deletes an assessment and every mark recorded for it. Returns <c>false</c> if it was already gone.</summary>
+    public bool DeleteActivity(Activity activity)
+    {
+        if (activity is null)
+        {
+            throw new ArgumentNullException(nameof(activity));
+        }
+
+        bool deleted = _activities.Delete(activity.ActivityId);
+        if (deleted)
+        {
+            RefreshReleasedGrades(activity.CourseId);
+        }
+
+        return deleted;
+    }
 
     public IReadOnlyList<StudentMarkEntry> GetMarks(int activityId) => _marks.GetMarksForActivity(activityId);
 
@@ -73,6 +95,16 @@ public sealed class CourseService
         }
 
         _marks.SaveMarks(activity.ActivityId, entries);
+        RefreshReleasedGrades(activity.CourseId);
         return ValidationResult.Success;
+    }
+
+    /// <summary>Recalculates the course's stored grades if they've been released; otherwise leaves it ungraded.</summary>
+    private void RefreshReleasedGrades(int courseId)
+    {
+        if (_grades.GetGradesForCourse(courseId).Count > 0)
+        {
+            _grades.ReplaceGradesForCourse(courseId, GradingService.Calculate(_marks, courseId));
+        }
     }
 }

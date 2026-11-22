@@ -28,7 +28,8 @@ public class InMemoryRepositoryTests
     private CourseService Courses => new CourseService(
         new InMemoryCourseRepository(_store),
         new InMemoryActivityRepository(_store),
-        new InMemoryMarksRepository(_store));
+        new InMemoryMarksRepository(_store),
+        new InMemoryGradeRepository(_store));
 
     private GradingService Grading => new GradingService(
         new InMemoryActivityRepository(_store),
@@ -139,10 +140,36 @@ public class InMemoryRepositoryTests
         entries.ForEach(e => e.ObtainedMarks = 7);
         Courses.SaveMarks(activity, entries);
 
-        Assert.True(Courses.DeleteActivity(activity.ActivityId));
+        Assert.True(Courses.DeleteActivity(activity));
         Assert.Empty(Courses.GetActivities(CS202));
         Assert.Empty(Courses.GetMarks(activity.ActivityId));
-        Assert.False(Courses.DeleteActivity(activity.ActivityId));
+        Assert.False(Courses.DeleteActivity(activity));
+    }
+
+    [Fact]
+    public void ChangingMarks_UpdatesReleasedGradesStudentsSee()
+    {
+        Activity finalExam = Courses.GetActivities(CS301).Single(a => a.Name == "Final Exam");
+        List<StudentMarkEntry> entries = Courses.GetMarks(finalExam.ActivityId).ToList();
+        entries.Single(e => e.StudentId == 10).ObtainedMarks = 60; // Jessica: 40 -> 60 on the final
+
+        Assert.True(Courses.SaveMarks(finalExam, entries).IsValid);
+
+        StudentCourseResult jessica = Results.GetCourses(10).Single(c => c.CourseId == CS301);
+        Assert.Equal(50.00m, jessica.Percentage);
+        Assert.Equal("D", jessica.FinalGrade);
+    }
+
+    [Fact]
+    public void ChangingMarks_DoesNotGradeACourseBeforeGradesAreReleased()
+    {
+        Assert.True(Courses.AddActivity(CS202, "Lab Work", 10, 10, out Activity? activity).IsValid);
+        List<StudentMarkEntry> entries = Courses.GetMarks(activity!.ActivityId).ToList();
+        entries.ForEach(e => e.ObtainedMarks = 7);
+
+        Assert.True(Courses.SaveMarks(activity, entries).IsValid);
+
+        Assert.Empty(Grading.GetGrades(CS202));
     }
 
     [Fact]

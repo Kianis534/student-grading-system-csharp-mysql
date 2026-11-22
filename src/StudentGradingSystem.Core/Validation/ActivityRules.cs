@@ -20,6 +20,12 @@ public static class ActivityRules
     /// <summary>All assessments in a course together may not exceed this weightage.</summary>
     public const decimal MaxCourseWeightage = 100m;
 
+    /// <summary>
+    /// Total marks, weightages and obtained marks are stored in DECIMAL(x,2) columns. Anything finer would be
+    /// rounded silently by the database (or turn into 0.00 and break a CHECK constraint), so it's rejected up front.
+    /// </summary>
+    public const int MaxDecimalPlaces = 2;
+
     /// <summary>Suggested names offered in the UI. Instructors may type their own.</summary>
     public static IReadOnlyList<string> SuggestedNames { get; } = new[]
     {
@@ -60,9 +66,19 @@ public static class ActivityRules
             return ValidationResult.Fail($"Total marks must be greater than 0 and at most {MaxTotalMarks:0}.");
         }
 
+        if (!HasValidPrecision(totalMarks))
+        {
+            return ValidationResult.Fail($"Total marks can have at most {MaxDecimalPlaces} decimal places.");
+        }
+
         if (weightage <= 0m || weightage > MaxCourseWeightage)
         {
             return ValidationResult.Fail("Weightage must be greater than 0% and at most 100%.");
+        }
+
+        if (!HasValidPrecision(weightage))
+        {
+            return ValidationResult.Fail($"Weightage can have at most {MaxDecimalPlaces} decimal places.");
         }
 
         decimal allocated = existingActivities.Sum(a => a.Weightage);
@@ -89,8 +105,15 @@ public static class ActivityRules
             return ValidationResult.Fail($"Marks must be between 0 and {Format(totalMarks)}.");
         }
 
+        if (!HasValidPrecision(obtainedMarks.Value))
+        {
+            return ValidationResult.Fail($"Marks can have at most {MaxDecimalPlaces} decimal places.");
+        }
+
         return ValidationResult.Success;
     }
+
+    private static bool HasValidPrecision(decimal value) => decimal.Round(value, MaxDecimalPlaces) == value;
 
     private static string Format(decimal value) => value.ToString("0.##", CultureInfo.InvariantCulture);
 }

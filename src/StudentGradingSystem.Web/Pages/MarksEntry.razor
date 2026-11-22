@@ -9,10 +9,13 @@
     return;
 }
 
-<DesktopWindow Title="@($"Student Grading System - {_activity.Name}")" Width="860" Height="620" OnClose="BackAsync" CloseLabel="Close (back to the course)"
+@* Asks before leaving with unsaved marks: Back, the close button, browser back/forward, reload or closing the tab. *@
+<NavigationLock OnBeforeInternalNavigation="ConfirmLeaveAsync" ConfirmExternalNavigation="@IsDirty" />
+
+<DesktopWindow Title="@($"Student Grading System - {_activity.Name}")" Width="860" Height="620" OnClose="Back" CloseLabel="Close (back to the course)"
                HeaderTitle="@($"Enter marks{Dot}{_activity.Name}")"
                HeaderSubtitle="@($"{_course.DisplayName}{Dot}Out of {Format(_activity.TotalMarks)}{Dot}{Format(_activity.Weightage)}% of the final grade")">
-    <div class="win-content tight" @onkeydown="OnWindowKey">
+    <div class="win-content tight" data-save-shortcut @onkeydown="OnWindowKey">
         <div class="hint-line">
             Type marks in the "Obtained marks" column and press Enter to move to the next student. Leave a cell empty if the student hasn't been marked yet.
         </div>
@@ -49,7 +52,7 @@
         </div>
     </div>
     <div class="win-footer">
-        <button class="btn btn-secondary" style="min-width:120px" @onclick="BackAsync">Back</button>
+        <button class="btn btn-secondary" style="min-width:120px" @onclick="Back">Back</button>
         <span class="status @StatusClass">@StatusText</span>
         <div class="right">
             <button class="btn btn-primary" style="min-width:160px" disabled="@(!IsDirty || HasErrors)" @onclick="() => SaveAsync()">Save marks</button>
@@ -214,7 +217,7 @@
 
     private async Task OnWindowKey(KeyboardEventArgs e)
     {
-        if (e.CtrlKey && (e.Key == "s" || e.Key == "S"))
+        if ((e.CtrlKey || e.MetaKey) && (e.Key == "s" || e.Key == "S"))
         {
             await SaveAsync();
         }
@@ -246,19 +249,22 @@
         return true;
     }
 
-    private async Task BackAsync()
-    {
-        if (IsDirty)
-        {
-            string? answer = await Dialogs.ShowAsync(
-                "You have unsaved marks. Save them before leaving?", DialogIcon.Question, "Yes", "No", "Cancel");
+    private void Back() => Nav.NavigateTo($"instructor/courses/{CourseId}");
 
-            if (answer is null or "Cancel" || (answer == "Yes" && !await SaveAsync()))
-            {
-                return;
-            }
+    private async Task ConfirmLeaveAsync(LocationChangingContext context)
+    {
+        // Nothing to lose, or "Reset demo data" signed the visitor out and there's nowhere left to save to.
+        if (!IsDirty || !Session.IsSignedIn)
+        {
+            return;
         }
 
-        Nav.NavigateTo($"instructor/courses/{CourseId}");
+        string? answer = await Dialogs.ShowAsync(
+            "You have unsaved marks. Save them before leaving?", DialogIcon.Question, "Yes", "No", "Cancel");
+
+        if (answer is null or "Cancel" || (answer == "Yes" && !await SaveAsync()))
+        {
+            context.PreventNavigation();
+        }
     }
 }

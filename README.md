@@ -90,7 +90,7 @@ Students sign in to see their results and exactly how every mark counts.
 - **Database-enforced rules:** foreign keys, unique keys and `CHECK` constraints back up the application's validation.
 - **No secrets in the repo:** connection settings come from an environment variable or a git-ignored config file, and there's an in-app **Database settings** dialog with a connection test.
 - **Friendly errors:** common setup problems (MySQL not running, wrong password, missing tables) are explained in plain language. Unexpected errors are logged.
-- **107 automated tests:** unit tests, MySQL integration tests and in-memory store tests, run on every push by GitHub Actions.
+- **119 automated tests:** unit tests, MySQL integration tests and in-memory store tests, run on every push by GitHub Actions.
 
 ## Live demo
 
@@ -306,7 +306,7 @@ Other files the app uses:
 2. Double-click a course (or select it and press **Enter**) to open it.
 3. Add assessments under **Add an assessment**: pick or type a name, set the total marks and weightage. The progress bar shows how much of the final grade is allocated.
 4. Select an assessment and click **Enter marks**. Type marks in the grid (Enter moves down, Esc undoes a cell, **Ctrl+S** saves).
-5. Click **Calculate grades** to compute and store everyone's final grade, then **Export to CSV** if you need a copy.
+5. Click **Calculate grades** to compute and release everyone's final grade, then **Export to CSV** if you need a copy. After that, released grades stay in step with the marks: saving marks, adding an assessment or deleting one recalculates them straight away.
 
 **Student workflow**
 
@@ -325,6 +325,8 @@ final % = Σ ( obtained marks ÷ total marks × weightage )
 - An assessment with no marks recorded contributes 0.
 - The result is rounded to two decimals (midpoint away from zero) before the letter grade is assigned, so 89.995% becomes 90.00% and earns an A.
 - If weightages add up to less than 100%, students are still graded out of 100%. The app warns the instructor before calculating.
+- Total marks, weightages and obtained marks can have up to two decimal places, the same precision the database stores.
+- Once grades are released, any change to the course's marks or assessments recalculates them, so a student never sees a grade that doesn't match their marks.
 
 | Grade | A | A- | B+ | B | B- | C+ | C | C- | D | F |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -498,14 +500,14 @@ $env:SGS_TEST_CONNECTION_STRING = "Server=localhost;Port=3306;User ID=root;Passw
 dotnet test StudentGradingSystem.sln -c Release
 ```
 
-What's covered (107 tests):
+What's covered (119 tests):
 
 | Area | Examples |
 | --- | --- |
 | Password hashing | Round trip, unique salts, malformed hashes rejected, compatibility with the seed script's hashes |
 | Grade rules | Every grade boundary, rounding, missing marks, clamping, class statistics |
-| Validation | Duplicate names, out-of-range marks, weightage never exceeding 100% |
-| Services | Sign-in (including timing-safe unknown users and hash upgrades), grading, all-or-nothing marks saving |
+| Validation | Duplicate names, out-of-range marks, two-decimal precision, weightage never exceeding 100% |
+| Services | Sign-in (including timing-safe unknown users and hash upgrades), grading, all-or-nothing marks saving, released grades kept in step with marks |
 | CSV export | Quoting, escaping and formula-injection protection |
 | MySQL integration | Seeded logins, course summaries, app vs. SQL grade parity, unique constraints, transactional saves, cascading deletes, enrolment-based access, error classification |
 | In-memory store (live demo) | The same scenarios as the MySQL tests, so the demo behaves like the real app, plus sample-data parity with `02-seed.sql` |
@@ -514,7 +516,7 @@ What's covered (107 tests):
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push and pull request:
 
-- **Windows job:** restores, builds with warnings treated as errors, starts MySQL 8.4, runs all 107 tests, packages the release zip and uploads it with the test results as build artifacts.
+- **Windows job:** restores, builds with warnings treated as errors, starts MySQL 8.4, runs all 119 tests, packages the release zip and uploads it with the test results as build artifacts.
 - **Database job (Ubuntu):** starts the Docker Compose stack, checks the schema and seed data, and confirms the scripts can safely run again.
 
 [`.github/workflows/pages.yml`](.github/workflows/pages.yml) publishes the Blazor WebAssembly demo to GitHub Pages whenever the web app or the shared logic changes.

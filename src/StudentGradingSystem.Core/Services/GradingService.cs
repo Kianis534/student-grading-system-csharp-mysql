@@ -25,16 +25,7 @@ public sealed class GradingService
     public decimal GetAllocatedWeightage(int courseId) => _activities.GetByCourse(courseId).Sum(a => a.Weightage);
 
     /// <summary>Computes every enrolled student's final grade without saving anything.</summary>
-    public IReadOnlyList<StudentGrade> PreviewGrades(int courseId)
-    {
-        return _marks.GetScoresForCourse(courseId)
-            .Select(student =>
-            {
-                GradeResult result = GradeCalculator.Calculate(student.Scores);
-                return new StudentGrade(student.StudentId, student.StudentName, result.Percentage, result.LetterGrade);
-            })
-            .ToList();
-    }
+    public IReadOnlyList<StudentGrade> PreviewGrades(int courseId) => Calculate(_marks, courseId);
 
     /// <summary>Recalculates every enrolled student's grade and replaces the stored grades for the course.</summary>
     public IReadOnlyList<StudentGrade> CalculateAndSaveGrades(int courseId)
@@ -45,4 +36,15 @@ public sealed class GradingService
     }
 
     public IReadOnlyList<StudentGrade> GetGrades(int courseId) => _grades.GetGradesForCourse(courseId);
+
+    internal static IReadOnlyList<StudentGrade> Calculate(IMarksRepository marks, int courseId)
+    {
+        return marks.GetScoresForCourse(courseId)
+            .Select(student =>
+            {
+                GradeResult result = GradeCalculator.Calculate(student.Scores);
+                return new StudentGrade(student.StudentId, student.StudentName, result.Percentage, result.LetterGrade);
+            })
+            .ToList();
+    }
 }

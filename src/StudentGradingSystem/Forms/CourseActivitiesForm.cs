@@ -142,7 +142,7 @@ public partial class CourseActivitiesForm : Form
         bool confirmed = Dialogs.Confirm(
             this,
             $"Delete \"{activity.Name}\" and every mark recorded for it?" + Environment.NewLine + Environment.NewLine +
-            "This can't be undone. Recalculate grades afterwards so final results reflect the change.",
+            "This can't be undone. If grades have been released, they're recalculated straight away.",
             destructive: true);
 
         if (!confirmed)
@@ -152,7 +152,7 @@ public partial class CourseActivitiesForm : Form
 
         try
         {
-            _services.Courses.DeleteActivity(activity.ActivityId);
+            _services.Courses.DeleteActivity(activity);
             LoadData();
         }
         catch (Exception ex)
