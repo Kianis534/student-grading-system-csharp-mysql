@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using StudentGradingSystem.Core.Models;
 using StudentGradingSystem.Core.Reporting;
 using StudentGradingSystem.Core.Validation;
@@ -75,6 +76,27 @@ public class ActivityRulesTests
         Assert.False(ActivityRules.ValidateNewActivity("Quiz", 10, (decimal)weightage, NoActivities).IsValid);
     }
 
+    [Theory]
+    [InlineData("0.001", "10")]
+    [InlineData("10.555", "10")]
+    [InlineData("10", "0.004")]
+    [InlineData("10", "12.345")]
+    public void ValidateNewActivity_RejectsMoreThanTwoDecimalPlaces(string totalMarks, string weightage)
+    {
+        ValidationResult result = ActivityRules.ValidateNewActivity(
+            "Quiz", decimal.Parse(totalMarks, CultureInfo.InvariantCulture), decimal.Parse(weightage, CultureInfo.InvariantCulture), NoActivities);
+
+        Assert.False(result.IsValid);
+        Assert.Contains("at most 2 decimal places", result.Error);
+    }
+
+    [Fact]
+    public void ValidateNewActivity_AcceptsTwoDecimalPlacesAndTrailingZeros()
+    {
+        Assert.True(ActivityRules.ValidateNewActivity("Quiz", 12.75m, 12.50m, NoActivities).IsValid);
+        Assert.True(ActivityRules.ValidateNewActivity("Quiz", 12.7500m, 12.5000m, NoActivities).IsValid);
+    }
+
     [Fact]
     public void ValidateNewActivity_KeepsCourseWeightageAtOrBelow100()
     {
@@ -100,6 +122,17 @@ public class ActivityRulesTests
         decimal? value = marks.HasValue ? (decimal)marks.Value : null;
 
         Assert.Equal(expected, ActivityRules.ValidateObtainedMarks(value, totalMarks: 50).IsValid);
+    }
+
+    [Theory]
+    [InlineData("9.999")]
+    [InlineData("0.001")]
+    public void ValidateObtainedMarks_RejectsMoreThanTwoDecimalPlaces(string marks)
+    {
+        ValidationResult result = ActivityRules.ValidateObtainedMarks(decimal.Parse(marks, CultureInfo.InvariantCulture), totalMarks: 10);
+
+        Assert.False(result.IsValid);
+        Assert.Contains("at most 2 decimal places", result.Error);
     }
 }
 
